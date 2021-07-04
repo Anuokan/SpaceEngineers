@@ -396,6 +396,7 @@ namespace DiamondDomeDefense
             if (clock % settings.DisplaysRefreshInterval == 0)
             {
                 RefreshDisplay();
+                RefreshDisplays();
             }
 
             if (clock % STATUS_REFRESH_INTERVAL == 0)
@@ -609,6 +610,8 @@ namespace DiamondDomeDefense
                         settings.RangeSweeperInterval = iniConfig.Get(INI_SECTION, "RangeSweeperInterval").ToInt32(settings.RangeSweeperInterval);
 
                         settings.TargetFoundHoldTicks = iniConfig.Get(INI_SECTION, "TargetFoundHoldTicks").ToInt32(settings.TargetFoundHoldTicks);
+
+                        settings.DisplayStatusInName = iniConfig.Get(INI_SECTION, "DisplayStatusInName").ToBoolean(false);
 
                         settings.UsePDCSpray = iniConfig.Get(INI_SECTION, "UsePDCSpray").ToBoolean(settings.UsePDCSpray);
                         settings.PDCSprayMinTargetSize = iniConfig.Get(INI_SECTION, "PDCSprayMinTargetSize").ToDouble(settings.PDCSprayMinTargetSize);
@@ -1698,6 +1701,7 @@ namespace DiamondDomeDefense
                 }
             }
         }
+        
         void ProcessCommands(string arguments)
         {
             string[] tokens = arguments.Split(splitDelimiterCommand, StringSplitOptions.RemoveEmptyEntries);
@@ -1710,10 +1714,10 @@ namespace DiamondDomeDefense
             if (command.StartsWith(MANUAL_AIMING_GRP_PREFIX, StringComparison.OrdinalIgnoreCase))
             {
                 int codeId;
-                if (command.Length == MANUAL_AIMING_GRP_PREFIX.Length) 
+                if (command.Length == MANUAL_AIMING_GRP_PREFIX.Length)
                 {
-                    codeId = 1; 
-                } 
+                    codeId = 1;
+                }
                 else if (!int.TryParse(command.Substring(MANUAL_AIMING_GRP_PREFIX.Length).Trim(), out codeId))
                 {
                     codeId = 0;
@@ -1722,16 +1726,16 @@ namespace DiamondDomeDefense
                 {
                     manualTarget = manualTargetersLookup[MANUAL_AIMING_GRP_PREFIX + codeId];
                 }
-                if (manualTarget != null && tokens.Length <= 1) 
-                { 
-                    return; 
+                if (manualTarget != null && tokens.Length <= 1)
+                {
+                    return;
                 }
             }
-            if (manualTarget != null) 
-            { 
+            if (manualTarget != null)
+            {
                 command = tokens[1].Trim().ToUpper();
             }
-            else if (manualTargeters?.Count > 0) 
+            else if (manualTargeters?.Count > 0)
             {
                 manualTarget = manualTargeters[0];
             }
@@ -1745,112 +1749,131 @@ namespace DiamondDomeDefense
                     if (TokenContainsMatch(tokens, MANUAL_LAUNCH_LARGEST_TAG))
                     {
                         PDCTarget largestTarget = targetManager.FindLargestTarget();
-                        if (largestTarget != null) 
-                        { 
-                            LaunchManualForTarget(guidanceComputers, largestTarget, manualTarget?.TargetingPointType ?? TargetingPointTypeEnum.Center, manualTarget?.OffsetPoint, useTorpedo); 
+                        if (largestTarget != null)
+                        {
+                            LaunchManualForTarget(guidanceComputers, largestTarget, manualTarget?.TargetingPointType ?? TargetingPointTypeEnum.Center, manualTarget?.OffsetPoint, useTorpedo);
                         }
                     }
                     else if (manualTarget != null)
                     {
-                        bool useExtendedMissileDistance = TokenContainsMatch(tokens, MANUAL_LAUNCH_EXTENDED_TAG);
+                        bool LaunchAutomaticMissiles = TokenContainsMatch(tokens, MANUAL_LAUNCH_EXTENDED_TAG);
                         if (manualTarget.SelectedEntityId > 0 && targetManager.TargetExists(manualTarget.SelectedEntityId))
                         {
-                            PDCTarget currentTarget = targetManager.GetTarget(manualTarget.SelectedEntityId); 
+                            PDCTarget currentTarget = targetManager.GetTarget(manualTarget.SelectedEntityId);
                             if (currentTarget != null)
                             {
-                                if (useExtendedMissileDistance) 
+                                if (LaunchAutomaticMissiles)
                                 {
                                     currentTarget.MaxAllowedMissileLaunchDistance = Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance);
                                 }
-                                LaunchManualForTarget(guidanceComputers, currentTarget, manualTarget.TargetingPointType, manualTarget.OffsetPoint, useTorpedo); 
-                            } 
+                                LaunchManualForTarget(guidanceComputers, currentTarget, manualTarget.TargetingPointType, manualTarget.OffsetPoint, useTorpedo);
+                            }
                         }
                         else
                         {
-                            manualTarget.Enabled = true;
-                            manualTarget.SelectedEntityId = -1; 
-                            manualTarget.OffsetPoint = Vector3D.Zero;
-                            manualTarget.Position = manualTarget.AimingBlock.WorldMatrix.Translation + (manualTarget.GetForwardViewDirection() * manualTarget.MaxManualRaycastDistance);
-                            manualTarget.MaxAllowedRaycastDistance = Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxRaycastTrackingDistance);
-                            manualTarget.MaxAllowedMissileLaunchDistance = (useExtendedMissileDistance ? Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance) : 0); 
-                            
-                            LaunchManualForTarget(guidanceComputers, manualTarget, manualTarget.TargetingPointType, manualTarget.OffsetPoint, useTorpedo);
-                        }
-                    }
-                    break;
-                case MANUAL_AIM_TRACK_TAG:
-                    if (manualTarget != null)
-                    {
-                        if (manualTarget.Enabled && manualTarget.SelectedEntityId == -1) 
-                        {
-                            manualTarget.Enabled = false;
-                            manualTarget.OffsetPoint = Vector3D.Zero; 
-                        }
-                        else
-                        {
-                            bool useExtendedMissileDistance = TokenContainsMatch(tokens, MANUAL_LAUNCH_EXTENDED_TAG);
-
                             manualTarget.Enabled = true;
                             manualTarget.SelectedEntityId = -1;
                             manualTarget.OffsetPoint = Vector3D.Zero;
                             manualTarget.Position = manualTarget.AimingBlock.WorldMatrix.Translation + (manualTarget.GetForwardViewDirection() * manualTarget.MaxManualRaycastDistance);
                             manualTarget.MaxAllowedRaycastDistance = Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxRaycastTrackingDistance);
-                            manualTarget.MaxAllowedMissileLaunchDistance = (useExtendedMissileDistance ? Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance) : 0);
+                            manualTarget.MaxAllowedMissileLaunchDistance = (LaunchAutomaticMissiles ? Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance) : 0);
+                            
+                            LaunchManualForTarget(guidanceComputers, manualTarget, manualTarget.TargetingPointType, manualTarget.OffsetPoint, useTorpedo);
                         }
                     }
                     break;
+
+                case MANUAL_AIM_TRACK_TAG:
+                    if (manualTarget != null)
+                    {
+                        if (manualTarget.Enabled && manualTarget.SelectedEntityId == -1)
+                        {
+                            manualTarget.Enabled = false;
+                            manualTarget.OffsetPoint = Vector3D.Zero;
+                        }
+                        else
+                        {
+                            bool LaunchAutomaticMissiles = TokenContainsMatch(tokens, MANUAL_LAUNCH_EXTENDED_TAG);
+                            manualTarget.Enabled = true;
+                            manualTarget.SelectedEntityId = -1;
+                            manualTarget.OffsetPoint = Vector3D.Zero;
+                            manualTarget.Position = manualTarget.AimingBlock.WorldMatrix.Translation + (manualTarget.GetForwardViewDirection() * manualTarget.MaxManualRaycastDistance);
+                            manualTarget.MaxAllowedRaycastDistance = Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxRaycastTrackingDistance);
+                            manualTarget.MaxAllowedMissileLaunchDistance = (LaunchAutomaticMissiles ? Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance) : 0);
+                        }
+                    }
+                    break;
+
+
                 case MANUAL_AIM_RELEASE_TAG:
                     if (manualTarget != null)
-                    { 
+                    {
                         manualTarget.Enabled = false;
-                        manualTarget.SelectedEntityId = -1; 
-                        manualTarget.OffsetPoint = Vector3D.Zero; 
-                    } 
+                        manualTarget.SelectedEntityId = -1;
+                        manualTarget.OffsetPoint = Vector3D.Zero;
+                    }
                     break;
+
                 case MANUAL_AIM_VALUE_SET_TAG:
                     if (manualTarget != null && tokens.Length >= 3)
                     {
                         switch (tokens[2].ToUpper().Trim())
                         {
-                            case MANUAL_AIM_VALUE_SET_CENTER_TAG: manualTarget.TargetingPointType = TargetingPointTypeEnum.Center; break;
-                            case MANUAL_AIM_VALUE_SET_OFFSET_TAG: manualTarget.TargetingPointType = TargetingPointTypeEnum.Offset; break;
-                            case MANUAL_AIM_VALUE_SET_RANDOM_TAG: manualTarget.TargetingPointType = TargetingPointTypeEnum.Random; break;
+                            case MANUAL_AIM_VALUE_SET_CENTER_TAG:
+                                manualTarget.TargetingPointType = TargetingPointTypeEnum.Center;
+                                break;
+                            case MANUAL_AIM_VALUE_SET_OFFSET_TAG:
+                                manualTarget.TargetingPointType = TargetingPointTypeEnum.Offset;
+                                break;
+                            case MANUAL_AIM_VALUE_SET_RANDOM_TAG:
+                                manualTarget.TargetingPointType = TargetingPointTypeEnum.Random;
+                                break;
                             case MANUAL_AIM_VALUE_SET_RANGE_TAG:
                                 if (tokens.Length >= 4)
                                 {
                                     double value;
                                     if (double.TryParse(tokens[3].Trim(), out value))
-                                    { 
-                                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(value, 1000), 100000);; 
+                                    {
+                                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(value, 1000), 100000); ;
                                     }
                                 }
                                 break;
                         }
                     }
                     break;
+
                 case MANUAL_AIM_VALUE_CYCLE_OFFSET_TAG:
                     if (manualTarget != null)
                     {
-                        manualTarget.TargetingPointType = (TargetingPointTypeEnum)(((int)manualTarget.TargetingPointType + 1) % 3); 
+                        manualTarget.TargetingPointType = (TargetingPointTypeEnum)(((int)manualTarget.TargetingPointType + 1) % 3);
                     }
                     break;
                 case MANUAL_AIM_VALUE_INC_RANGE_TAG:
-                    if (manualTarget != null) 
-                    { 
-                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(manualTarget.MaxManualRaycastDistance + 1000, 1000), 100000);;
-                    } 
+                    if (manualTarget != null)
+                    {
+                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(manualTarget.MaxManualRaycastDistance + 1000, 1000), 100000); ;
+                    }
                     break;
                 case MANUAL_AIM_VALUE_DEC_RANGE_TAG:
                     if (manualTarget != null)
                     {
-                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(manualTarget.MaxManualRaycastDistance - 1000, 1000), 100000);;
+                        manualTarget.MaxManualRaycastDistance = Math.Min(Math.Max(manualTarget.MaxManualRaycastDistance - 1000, 1000), 100000); ;
                     }
                     break;
+
                 case CMD_TOGGLE_ON_OFF:
                     switchedOn = !switchedOn;
+                    if (settings.DisplayStatusInName)
+                    {
+                        var s = Me.CustomName.Split('|');
+                        if (s.Length == 2)
+                        {
+                            Me.CustomName = s[0] + "|" + (switchedOn?$" DDS ON {pdcList.Count(b=>{return!b.IsDamaged;})}":" DDS OFF");
+                        }
+                    };
                     if (!switchedOn)
                     {
-                        foreach (PDCTurret pdc in pdcList) 
+                        foreach (PDCTurret pdc in pdcList)
                         {
                             pdc.TargetInfo = null;
                             pdc.ReleaseWeapons(true);
@@ -1858,7 +1881,7 @@ namespace DiamondDomeDefense
                         }
                     }
                     break;
-                case CMD_TOGGLE_ON: 
+                case CMD_TOGGLE_ON:
                     switchedOn = true;
                     break;
                 case CMD_TOGGLE_OFF:
@@ -1867,7 +1890,7 @@ namespace DiamondDomeDefense
                     {
                         pdc.TargetInfo = null;
                         pdc.ReleaseWeapons(true);
-                        pdc.ResetRotors(); 
+                        pdc.ResetRotors();
                     }
                     break;
                 case CMD_AUTOLAUNCH_ON_OFF:
@@ -1884,7 +1907,6 @@ namespace DiamondDomeDefense
                     break;
             }
         }
-
         #endregion
 
         #region Missile Launch
@@ -2472,6 +2494,7 @@ namespace DiamondDomeDefense
             sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
             sb.AppendLine($"Guided Missiles : {missileComputers.Count}");
             sb.AppendLine($"Guided Torpedos : {torpedoComputers.Count}");
+            sb.AppendLine($"targets : {targetManager.GetAllTargets()}");
             if (switchedOn)
             {
                 sb.AppendLine($"Tracked Targets : {targetManager.Count()}");

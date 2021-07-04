@@ -23,6 +23,7 @@ namespace DiamondDomeDefense
         public class TargetManager
         {
             const int TICKS_PER_SECOND = Program.TICKS_PER_SECOND;
+
             Dictionary<long, Wrapper> targetsLookup;
             SortedSet<Wrapper> targetsByRaycastRefresh; 
 
@@ -85,6 +86,7 @@ namespace DiamondDomeDefense
                     }
 
                     wrapper.LastLocalDetectedClock = clock;
+                    target.TargetSizeSq = entityInfo.BoundingBox.Extents.LengthSquared() * 0.5;
                     return false;
                 }
                 else
@@ -102,6 +104,7 @@ namespace DiamondDomeDefense
                     wrapper.LastLocalDetectedClock = clock;
 
                     targetsLookup.Add(entityInfo.EntityId, wrapper);
+                    target.TargetSizeSq = entityInfo.BoundingBox.Extents.LengthSquared() * 0.5;
                     targetsByRaycastRefresh.Add(wrapper);
 
                     return true;

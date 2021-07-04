@@ -27,6 +27,8 @@ namespace DiamondDomeDefense
             public Program Context; // WC 0.1
             public WcPbApi WCAPI;   // WC 0.1
 
+            public bool DisplayStatusInName;
+
             public int MainBlocksReloadTicks = 600;
 
             public int TargetTracksTransmitIntervalTicks = 45;
