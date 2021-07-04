@@ -22,239 +22,303 @@ namespace DiamondDomeDefense
     
         public class RaycastHandler
         {
-            float Ũ;
-            double ŧ;
-            bool Ŧ;
-            List<IMyCameraBlock> ť;
-        public List<IMyCameraBlock> Cameras
+            float coneLimit;
+            double sideScale;
+            bool noFwdScale;
+
+            List<IMyCameraBlock> m_cameras;
+            public List<IMyCameraBlock> Cameras
             {
-                get { return ť; }
+                get { return m_cameras; }
                 set
                 {
-                    foreach (IMyCameraBlock ª in value)
+                    foreach (IMyCameraBlock camera in value)
                     {
-                        ª.Enabled = true;
-                        ª.EnableRaycast = true;
+                        camera.Enabled = true;
+                        camera.EnableRaycast = true;
                     }
-                    ť = value;
-                    Ţ();
+                    m_cameras = value;
+
+                    CompileCameraGroups();
 
                 }
             }
             
-            List<Ï> Ť;
+            List<CameraGroup> m_cameraGroups;
 
-            public RaycastHandler(List<IMyCameraBlock> ţ)
+            public RaycastHandler(List<IMyCameraBlock> cameras)
             {
-                if (ţ.Count > 0)
+                if (cameras.Count > 0)
                 {
-                    Ũ = ţ[0].RaycastConeLimit;
-                    if (Ũ == 0f || Ũ == 180f) ŧ = double.NaN;
-                    else ŧ = Math.Tan(MathHelper.ToRadians(90 - Ũ));
-                    Ŧ = double.IsNaN(ŧ) || double.IsInfinity(ŧ);
-                    if (Ŧ) ŧ = 1;
+                    coneLimit = cameras[0].RaycastConeLimit;
+                    if (coneLimit == 0f || coneLimit == 180f) sideScale = double.NaN;
+                    else sideScale = Math.Tan(MathHelper.ToRadians(90 - coneLimit));
+
+                    noFwdScale = double.IsNaN(sideScale) || double.IsInfinity(sideScale);
+                    if (noFwdScale) sideScale = 1;
                 }
                 else 
                 {
-                Ũ = 45;
-                ŧ = 1;
-                Ŧ = false;
+                    coneLimit = 45;
+                    sideScale = 1;
+                    noFwdScale = false;
                 }
 
-                Cameras = ţ;
+                Cameras = cameras;
 
                 MyMath.InitializeFastSin();
 
             }
 
-            private void Ţ()
+            private void CompileCameraGroups()
             {
-                if (Ũ <= 0 || Ũ >= 180) 
+                if (coneLimit <= 0 || coneLimit >= 180) 
                 { 
-                Ť = new List<Ï>();
+                m_cameraGroups = new List<CameraGroup>();
                 return;
                 }
-                Dictionary<string, Ï> š = new Dictionary<string, Ï>();
+                Dictionary<string, CameraGroup> cameraGroupsLookup = new Dictionary<string, CameraGroup>();
                 
-                foreach (IMyCameraBlock ª in ť)
+                foreach (IMyCameraBlock camera in m_cameras)
                 {
-                    string Š = ª.CubeGrid.EntityId.ToString() + "-" + ((int) ª.Orientation.Forward).ToString();
-                    Ï ş;
-                    if (š.ContainsKey(Š))
+                    string key = camera.CubeGrid.EntityId.ToString() + "-" + ((int) camera.Orientation.Forward).ToString();
+                    CameraGroup cameraGroup;
+                    if (cameraGroupsLookup.ContainsKey(key))
                     {
-                        ş = š[Š]; 
+                        cameraGroup = cameraGroupsLookup[key]; 
                     }
                     else
                     {
-                        ş = new Ï();
-                        ş.Î = new List<IMyCameraBlock>();
-                        ş.Ì = ŧ;
-                        ş.Ë = Ŧ;
-                        š[Š] = ş;
+                        cameraGroup = new CameraGroup();
+                        cameraGroup.Cameras = new List<IMyCameraBlock>();
+                        cameraGroup.SideScale = sideScale;
+                        cameraGroup.NoFwdScale = noFwdScale;
+                        cameraGroupsLookup[key] = cameraGroup;
                     }
 
-                    ş.Î.Add(ª);
+                    cameraGroup.Cameras.Add(camera);
                 }
 
-                Ť = š.Values.ToList();
-                foreach (Ï ş in Ť)
+                m_cameraGroups = cameraGroupsLookup.Values.ToList();
+
+                foreach (CameraGroup cameraGroup in m_cameraGroups)
                 {
-                    ş.Ò = ş.Î[0].CubeGrid; int F = int.MaxValue, E = int.MinValue, D = int
-.MaxValue, C = int.MinValue, B = int.MaxValue, I = int.MinValue; foreach (IMyCameraBlock ª in ş.Î)
+                    cameraGroup.Grid = cameraGroup.Cameras[0].CubeGrid;
+
+                    int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue, minZ = int.MaxValue, maxZ = int.MinValue;
+
+                    foreach (IMyCameraBlock camera in cameraGroup.Cameras)
                     {
-                        F = Math.Min(F, ª.Position.X); E = Math
-.Max(E, ª.Position.X); D = Math.Min(D, ª.Position.Y); C = Math.Max(C, ª.Position.Y); B = Math.Min(B, ª.Position.Z); I = Math.Max(I, ª.
-Position.Z);
+                        minX = Math.Min(minX, camera.Position.X);
+                        maxX = Math.Max(maxX, camera.Position.X);
+                        minY = Math.Min(minY, camera.Position.Y);
+                        maxY = Math.Max(maxY, camera.Position.Y);
+                        minZ = Math.Min(minZ, camera.Position.Z);
+                        maxZ = Math.Max(maxZ, camera.Position.Z);
                     }
-                    Base6Directions.Direction ų = ş.Ò.WorldMatrix.GetClosestDirection(ş.Î[0].WorldMatrix.Up); Base6Directions.Direction Ų =
-          ş.Ò.WorldMatrix.GetClosestDirection(ş.Î[0].WorldMatrix.Left); Base6Directions.Direction ű = ş.Ò.WorldMatrix.
-           GetClosestDirection(ş.Î[0].WorldMatrix.Forward); ş.Æ = Ï.N(ų); ş.Å = Ï.N(Ų); ş.Ä = Ï.N(ű); ş.Ê = Ï.H(ų, F, E, D, C, B, I); ş.É = Ï.H(Base6Directions.
-                              GetOppositeDirection(ų), F, E, D, C, B, I); ş.È = Ï.H(Ų, F, E, D, C, B, I); ş.Ç = Ï.H(Base6Directions.GetOppositeDirection(Ų), F, E, D, C, B, I);
+
+                    Base6Directions.Direction gridUp = cameraGroup.Grid.WorldMatrix.GetClosestDirection(cameraGroup.Cameras[0].WorldMatrix.Up);
+                    Base6Directions.Direction gridLeft = cameraGroup.Grid.WorldMatrix.GetClosestDirection(cameraGroup.Cameras[0].WorldMatrix.Left);
+                    Base6Directions.Direction gridForward = cameraGroup.Grid.WorldMatrix.GetClosestDirection(cameraGroup.Cameras[0].WorldMatrix.Forward);
+
+                    cameraGroup.DirectionUp = CameraGroup.GetDirectionFunction(gridUp);
+                    cameraGroup.DirectionLeft = CameraGroup.GetDirectionFunction(gridLeft);
+                    cameraGroup.DirectionForward = CameraGroup.GetDirectionFunction(gridForward);
+
+                    cameraGroup.PointUp = CameraGroup.H(gridUp, minX, maxX, minY, maxY, minZ, maxZ);
+                    cameraGroup.PointDown = CameraGroup.H(Base6Directions.GetOppositeDirection(gridUp), minX, maxX, minY, maxY, minZ, maxZ);
+                    cameraGroup.PointLeft = CameraGroup.H(gridLeft, minX, maxX, minY, maxY, minZ, maxZ); 
+                    cameraGroup.PointRight = CameraGroup.H(Base6Directions.GetOppositeDirection(gridLeft), minX, maxX, minY, maxY, minZ, maxZ);
                 }
             }
-            public bool Raycast(ref
-Vector3D Ę, out MyDetectedEntityInfo Ŵ, double Ű = 0)
+
+            public bool Raycast(ref Vector3D targetPosition, out MyDetectedEntityInfo entityInfo, double extraDistance = 0)
             {
-                IMyCameraBlock ª = ŭ(ref Ę); if (ª != null)
+                IMyCameraBlock camera = GetRaycastable(ref targetPosition);
+                if (camera != null)
                 {
-                    if (Ű == 0) { Ŵ = µ(ª, ref Ę); }
+                    if (extraDistance == 0)
+                    {
+                        entityInfo = Raycast(camera, ref targetPosition);
+                    }
                     else
                     {
-                        Vector3D ů = Ę
-- ª.WorldMatrix.Translation; Vector3D Ů = Ę + ((Ű / Math.Max(ů.Length(), 0.000000000000001)) * ů); Ŵ = µ(ª, ref Ů);
+                        Vector3D targetRangeVector = targetPosition- camera.WorldMatrix.Translation;
+                        Vector3D adjustedPosition = targetPosition + ((extraDistance / Math.Max(targetRangeVector.Length(), 0.000000000000001)) * targetRangeVector);
+                        entityInfo = Raycast(camera, ref adjustedPosition);
                     }
                     return true;
                 }
                 else
                 {
-                    Ŵ =
-default(MyDetectedEntityInfo); return false;
+                    entityInfo = default(MyDetectedEntityInfo);
+                    return false;
                 }
             }
-            IMyCameraBlock ŭ(ref Vector3D Ę)
+
+            IMyCameraBlock GetRaycastable(ref Vector3D targetPosition)
             {
-                foreach (Ï Ŭ in Ť)
+                foreach (CameraGroup tryGroup in m_cameraGroups)
                 {
-                    if (Ŭ.l(ref Ę))
+                    if (tryGroup.WithinLimits(ref targetPosition))
                     {
-                        return ū(Ŭ, ref Ę
+                        return GetFromCameraGroup(tryGroup, ref targetPosition
 );
                     }
                 }
                 return null;
             }
-            IMyCameraBlock ū(Ï Ū, ref Vector3D Ę)
+            IMyCameraBlock GetFromCameraGroup(CameraGroup group, ref Vector3D targetPosition)
             {
-                bool Â = true; for (int Q = 0; Q < Ū.Î.Count; Q++)
+                bool checkGroupLimit = true;
+
+                for (int i = 0; i < group.Cameras.Count; i++)
                 {
-                    if (Ū.Í >= Ū.Î.Count) { Ū.Í = 0; }
-                    IMyCameraBlock ª = Ū.Î[Ū.Í++]; if (ª.IsWorking) { if (À(ª, ref Ę)) { return ª; } else if (Â) { Â = false; if (!Ū.l(ref Ę)) { break; } } }
+                    if (group.StaggerIndex >= group.Cameras.Count) 
+                    {
+                        group.StaggerIndex = 0;
+                    }
+                    IMyCameraBlock camera = group.Cameras[group.StaggerIndex++]; 
+                    if (camera.IsWorking) 
+                    {
+                        if (CanScan(camera, ref targetPosition)) 
+                        {
+                            return camera; 
+                        }
+                        else if (checkGroupLimit) 
+                        { 
+                            checkGroupLimit = false; 
+                            if (!group.WithinLimits(ref targetPosition)) 
+                            {
+                                break;
+                            } 
+                        } 
+                    }
                 }
+
                 return null;
             }
-            bool À(
-IMyCameraBlock ª, ref Vector3D Z)
+            bool CanScan(IMyCameraBlock camera, ref Vector3D position)
             {
-                Vector3D j = (Ŧ ? Vector3D.Zero : ª.WorldMatrix.Forward); Vector3D h = ª.WorldMatrix.Left; Vector3D g = ª.
-WorldMatrix.Up; Vector3D Á = Z - ª.WorldMatrix.Translation; if (ŧ >= 0)
+                Vector3D forward = (noFwdScale ? Vector3D.Zero : camera.WorldMatrix.Forward);
+                Vector3D scaleLeft = camera.WorldMatrix.Left;
+                Vector3D scaleUp = camera.WorldMatrix.Up;
+
+                Vector3D direction = position - camera.WorldMatrix.Translation;
+                if (sideScale >= 0)
                 {
-                    return (ª.AvailableScanRange * ª.AvailableScanRange >= Á.LengthSquared())
-&& Á.Dot(j + h) >= 0 && Á.Dot(j - h) >= 0 && Á.Dot(j + g) >= 0 && Á.Dot(j - g) >= 0;
+                    return (camera.AvailableScanRange * camera.AvailableScanRange >= direction.LengthSquared()) &&
+                    direction.Dot(forward + scaleLeft) >= 0 &&
+                    direction.Dot(forward - scaleLeft) >= 0 &&
+                    direction.Dot(forward + scaleUp) >= 0 &&
+                    direction.Dot(forward - scaleUp) >= 0;
                 }
                 else
                 {
-                    return (ª.AvailableScanRange * ª.AvailableScanRange >= Á.
-LengthSquared()) && (Á.Dot(j + h) >= 0 || Á.Dot(j - h) >= 0 || Á.Dot(j + g) >= 0 || Á.Dot(j - g) >= 0);
+                    return (camera.AvailableScanRange * camera.AvailableScanRange >= direction.LengthSquared()) &&
+                    (direction.Dot(forward + scaleLeft) >= 0 || 
+                    direction.Dot(forward - scaleLeft) >= 0 || 
+                    direction.Dot(forward + scaleUp) >= 0 || 
+                    direction.Dot(forward - scaleUp) >= 0);
                 }
             }
-            void º(IMyCameraBlock ª, ref Vector3D Z, out double w,
-out double v, out double s)
+
+            void GetRaycastParameters(IMyCameraBlock camera, ref Vector3D position, out double distance,out double pitch, out double yaw)
             {
-                Vector3D r = Z - ª.WorldMatrix.Translation; r = Vector3D.TransformNormal(r, MatrixD.Transpose(ª.
-WorldMatrix)); Vector3D q = Vector3D.Normalize(new Vector3D(r.X, 0, r.Z)); w = r.Normalize(); s = MathHelper.ToDegrees(Math.Acos(MathHelper.
-   Clamp(q.Dot(Vector3D.Forward), -1, 1)) * Math.Sign(r.X)); v = MathHelper.ToDegrees(Math.Acos(MathHelper.Clamp(q.Dot(r), -1, 1)) * Math.
-        Sign(r.Y));
+                Vector3D targetVector = position - camera.WorldMatrix.Translation;
+                targetVector = Vector3D.TransformNormal(targetVector, MatrixD.Transpose(camera.WorldMatrix));
+                
+                Vector3D yawBaseVector = Vector3D.Normalize(new Vector3D(targetVector.X, 0, targetVector.Z));
+                
+                distance = targetVector.Normalize();
+                
+                yaw = MathHelper.ToDegrees(Math.Acos(MathHelper.Clamp(yawBaseVector.Dot(Vector3D.Forward), -1, 1)) * Math.Sign(targetVector.X));
+                pitch = MathHelper.ToDegrees(Math.Acos(MathHelper.Clamp(yawBaseVector.Dot(targetVector), -1, 1)) * Math.Sign(targetVector.Y));
             }
-            MyDetectedEntityInfo µ(IMyCameraBlock ª, ref Vector3D Z)
+            MyDetectedEntityInfo Raycast(IMyCameraBlock camera, ref Vector3D position)
             {
-                double Ó, Ñ, Ð; º(ª, ref Z, out Ó, out Ñ, out Ð); return ª.
-Raycast(Ó, (float)Ñ, (float)Ð);
+                double raycastDistance, raycastPitch, raycastYaw;
+                GetRaycastParameters(camera, ref position, out raycastDistance, out raycastPitch, out raycastYaw);
+                return camera.Raycast(raycastDistance, (float)raycastPitch, (float)raycastYaw);
             }
-            public class Ï
+            public class CameraGroup
             {
-                public List<IMyCameraBlock> Î; public int Í; public double Ì; public bool Ë; public
-IMyCubeGrid Ò; public Vector3I Ê; public Vector3I É; public Vector3I È; public Vector3I Ç; public Func<IMyCubeGrid, Vector3D> Æ; public
-Func<IMyCubeGrid, Vector3D> Å; public Func<IMyCubeGrid, Vector3D> Ä; public static Vector3D Ã(IMyCubeGrid J)
+                public List<IMyCameraBlock> Cameras;
+                public int StaggerIndex;
+                
+                public double SideScale;
+                public bool NoFwdScale;
+                
+                public IMyCubeGrid Grid;
+                
+                public Vector3I PointUp;
+                public Vector3I PointDown;
+                public Vector3I PointLeft; 
+                public Vector3I PointRight; 
+                
+                public Func<IMyCubeGrid, Vector3D> DirectionUp; 
+                public Func<IMyCubeGrid, Vector3D> DirectionLeft;
+                public Func<IMyCubeGrid, Vector3D> DirectionForward; 
+                
+                public static Vector3D GetDirectionUp(IMyCubeGrid J) { return J.WorldMatrix.Up; }
+                public static Vector3D GetDirectionDown(IMyCubeGrid J) { return J.WorldMatrix.Down; }
+                public static Vector3D GetDirectionLeft(IMyCubeGrid J) { return J.WorldMatrix.Left; }
+                public static Vector3D GetDirectionRight(IMyCubeGrid J) { return J.WorldMatrix.Right; }
+                public static Vector3D GetDirectionForward(IMyCubeGrid J) { return J.WorldMatrix.Forward; }
+                public static Vector3D GetDirectionBackward(IMyCubeGrid J) { return J.WorldMatrix.Backward; }
+                
+                public static Func<IMyCubeGrid, Vector3D> GetDirectionFunction(Base6Directions.Direction dir)
                 {
-                    return J.WorldMatrix.
-Up;
-                }
-                public static Vector3D o(IMyCubeGrid J) { return J.WorldMatrix.Down; }
-                public static Vector3D A(IMyCubeGrid J)
-                {
-                    return J.
-WorldMatrix.Left;
-                }
-                public static Vector3D M(IMyCubeGrid J) { return J.WorldMatrix.Right; }
-                public static Vector3D L(IMyCubeGrid J)
-                {
-                    return J.WorldMatrix.Forward;
-                }
-                public static Vector3D K(IMyCubeGrid J) { return J.WorldMatrix.Backward; }
-                public static Func<
-IMyCubeGrid, Vector3D> N(Base6Directions.Direction G)
-                {
-                    switch (G)
+                    switch (dir)
                     {
-                        case Base6Directions.Direction.Up: return Ã;
-                        case Base6Directions.
-Direction.Down:
-                            return o;
-                        case Base6Directions.Direction.Left: return A;
-                        case Base6Directions.Direction.Right: return M;
-                        case
-Base6Directions.Direction.Forward:
-                            return L;
-                        case Base6Directions.Direction.Backward: return K;
-                        default: return L;
+                        case Base6Directions.Direction.Up: return GetDirectionUp;
+                        case Base6Directions.Direction.Down:return GetDirectionDown;
+                        case Base6Directions.Direction.Left: return GetDirectionLeft;
+                        case Base6Directions.Direction.Right: return GetDirectionRight;
+                        case Base6Directions.Direction.Forward:return GetDirectionForward;
+                        case Base6Directions.Direction.Backward: return GetDirectionBackward;
+                        default: return GetDirectionForward;
                     }
                 }
-                public static Vector3I H
-(Base6Directions.Direction G, int F, int E, int D, int C, int B, int I)
+                public static Vector3I H(Base6Directions.Direction dir, int minX, int maxX, int minY, int maxY, int minZ, int I)
                 {
-                    switch (G)
+                    switch (dir)
                     {
                         case Base6Directions.Direction.Up:
-                            return new
-Vector3I((F + E) / 2, C, (B + I) / 2);
-                        case Base6Directions.Direction.Down: return new Vector3I((F + E) / 2, D, (B + I) / 2);
-                        case Base6Directions.
-Direction.Left:
-                            return new Vector3I(F, (D + C) / 2, (B + I) / 2);
+                            return newVector3I((minX + maxX) / 2, maxY, (minZ + I) / 2);
+                        case Base6Directions.Direction.Down: return new Vector3I((minX + maxX) / 2, minY, (minZ + I) / 2);
+                        case Base6Directions.Direction.Left:
+                            return new Vector3I(minX, (minY + maxY) / 2, (minZ + I) / 2);
                         case Base6Directions.Direction.Right:
-                            return new Vector3I(E, (D + C) / 2, (B + I) / 2)
-;
-                        case Base6Directions.Direction.Forward: return new Vector3I((F + E) / 2, (D + C) / 2, B);
+                            return new Vector3I(maxX, (minY + maxY) / 2, (minZ + I) / 2);
+                        case Base6Directions.Direction.Forward: return new Vector3I((minX + maxX) / 2, (minY + maxY) / 2, minZ);
                         case Base6Directions.Direction.Backward:
-                            return new Vector3I((F + E) / 2, (D + C) / 2, I);
-                        default: return new Vector3I((F + E) / 2, (D + C) / 2, B);
+                            return new Vector3I((minX + maxX) / 2, (minY + maxY) / 2, I);
+                        default: return new Vector3I((minX + maxX) / 2, (minY + maxY) / 2, minZ);
                     }
                 }
-                Vector3D P(ref Vector3D Z, ref Vector3I
-n)
-                { return Z - Ò.GridIntegerToWorld(n); }
-                public bool l(ref Vector3D Z)
+                Vector3D GetAim(ref Vector3D position, ref Vector3In)
+                { 
+                return position - Grid.GridIntegerToWorld(refPoint); 
+                }
+
+                public bool WithinLimits(ref Vector3D position)
                 {
-                    Vector3D j = (Ë ? Vector3D.Zero : Ä(Ò)); Vector3D h = Ì * Å(Ò);
-                    Vector3D g = Ì * Æ(Ò); if (Ì >= 0)
+                    Vector3D forward = (NoFwdScale ? Vector3D.Zero : DirectionForward(Grid));
+                    Vector3D scaleLeft = SideScale * DirectionLeft(Grid);
+                    Vector3D scaleUp = SideScale * DirectionUp(Grid); if (SideScale >= 0)
                     {
-                        return (P(ref Z, ref Ç).Dot(j + h) >= 0 && P(ref Z, ref È).Dot(j - h) >= 0 && P(ref Z, ref É).Dot(j + g) >= 0 && P(ref Z,
-ref Ê).Dot(j - g) >= 0);
+                        return (GetAim(ref position, ref PointRight).Dot(forward + scaleLeft) >= 0 &&
+                                GetAim(ref position, ref PointLeft).Dot(forward - scaleLeft) >= 0 &&
+                                GetAim(ref position, ref PointDown).Dot(forward + scaleUp) >= 0 && 
+                                GetAim(ref position,ref PointUp).Dot(forward - scaleUp) >= 0);
                     }
                     else
                     {
-                        return (P(ref Z, ref Ç).Dot(j + h) >= 0 || P(ref Z, ref È).Dot(j - h) >= 0 || P(ref Z, ref É).Dot(j + g) >= 0 || P(ref
-Z, ref Ê).Dot(j - g) >= 0);
+                        return (GetAim(ref position, ref PointRight).Dot(forward + scaleLeft) >= 0 || 
+                                GetAim(ref position, ref PointLeft).Dot(forward - scaleLeft) >= 0 || 
+                                GetAim(ref position, ref PointDown).Dot(forward + scaleUp) >= 0 || 
+                                GetAim(refZ, ref PointUp).Dot(forward - scaleUp) >= 0);
                     }
                 }
             }

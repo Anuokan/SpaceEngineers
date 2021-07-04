@@ -22,26 +22,71 @@ namespace DiamondDomeDefense
     
         public class RoundRobin<Т>
         {
-            private List<Т> С; private Func<Т, bool> Р; private int П; private int ƿ; private bool
-Ф; public RoundRobin(List<Т> б, Func<Т, bool> з = null) { С = б; Р = з; П = ƿ = 0; Ф = false; if (С == null) С = new List<Т>(); }
-            public void Reset() { П = ƿ = 0; }
-            public
-void Begin()
-            { П = ƿ; Ф = (С.Count > 0); }
+            private List<Т> items;
+            private Func<Т, bool> isReady;
+            private int start;
+            private int current; 
+            private bool available;
+            public RoundRobin(List<Т> dispatchItems, Func<Т, bool> isReadyFunc = null) 
+            {
+                items = dispatchItems; 
+                isReady = isReadyFunc;
+            
+                start = current = 0; 
+                available = false;
+
+                if (items == null) items = new List<Т>(); 
+            }
+
+            public void Reset() 
+            { 
+                start = current = 0; 
+            }
+        
+            public void Begin()
+            { 
+                start = current;
+                available = (items.Count > 0); 
+            }
+        
             public Т GetNext()
             {
-                if (П >= С.Count) П = 0; if (ƿ >= С.Count) { ƿ = 0; Ф = (С.Count > 0); }
-                Т Ơ = default(Т); while (Ф)
+                if (start >= items.Count) start = 0; 
+                if (current >= items.Count) 
                 {
-                    Т г = С[ƿ
-++]; if (ƿ >= С.Count) ƿ = 0; if (ƿ == П) Ф = false; if (Р == null || Р(г)) { Ơ = г; break; }
+                    current = 0; 
+                    available = (items.Count > 0); 
                 }
-                return Ơ;
+            
+                Т result = default(Т); 
+            
+                while (available)
+                {
+                    Т item = items[current++];
+                
+                    if (current >= items.Count) current = 0;
+                    if (current == start) available = false;
+
+                    if (isReady == null || isReady(item))
+                    {
+                        result = item;
+                        break;
+                    }
+                }
+
+                return result;
+            
             }
-            public void в(List<Т> б)
+        
+            public void ReloadList(List<Т> dispatchItems)
             {
-                С = б; if (С == null) С = new
-List<Т>(); if (П >= С.Count) П = 0; if (ƿ >= С.Count) ƿ = 0; Ф = false;
+                items = dispatchItems;
+                if (items == null) items = new List<Т>();
+
+                if (start >= items.Count) start = 0;
+                if (current >= items.Count) current = 0;
+
+                available = false;
             }
         }
     

@@ -188,7 +188,7 @@ namespace DiamondDomeDefense
 
         IMyBroadcastListener igcTargetTracksListener;
         IMyBroadcastListener igcTracksInfoListener;
-
+        
         Queue<MissileCommsTarget> guidanceCommsTargets;
         Queue<PDCTarget> tracksCommsTargets;
         int curCommsQueuePriority = 0;

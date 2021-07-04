@@ -23,12 +23,18 @@ namespace DiamondDomeDefense
         public class MissileCommsTarget
         {
             public long TransmitUniqueId;
+
             public PDCTarget Target;
             public int TransmitUntilClock;
+
             public int NextTransmitClock;
+
             public bool UseOffsetTargeting;
+
             public bool TransmitAsSwitchLost; 
+
             public IMyProgrammableBlock CacheMissilePB;
+
         }
    
 }
