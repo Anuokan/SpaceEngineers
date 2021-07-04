@@ -125,10 +125,10 @@ namespace DiamondDomeDefense
                     cameraGroup.DirectionLeft = CameraGroup.GetDirectionFunction(gridLeft);
                     cameraGroup.DirectionForward = CameraGroup.GetDirectionFunction(gridForward);
 
-                    cameraGroup.PointUp = CameraGroup.H(gridUp, minX, maxX, minY, maxY, minZ, maxZ);
-                    cameraGroup.PointDown = CameraGroup.H(Base6Directions.GetOppositeDirection(gridUp), minX, maxX, minY, maxY, minZ, maxZ);
-                    cameraGroup.PointLeft = CameraGroup.H(gridLeft, minX, maxX, minY, maxY, minZ, maxZ); 
-                    cameraGroup.PointRight = CameraGroup.H(Base6Directions.GetOppositeDirection(gridLeft), minX, maxX, minY, maxY, minZ, maxZ);
+                    cameraGroup.PointUp = CameraGroup.GetReferencePoint(gridUp, minX, maxX, minY, maxY, minZ, maxZ);
+                    cameraGroup.PointDown = CameraGroup.GetReferencePoint(Base6Directions.GetOppositeDirection(gridUp), minX, maxX, minY, maxY, minZ, maxZ);
+                    cameraGroup.PointLeft = CameraGroup.GetReferencePoint(gridLeft, minX, maxX, minY, maxY, minZ, maxZ); 
+                    cameraGroup.PointRight = CameraGroup.GetReferencePoint(Base6Directions.GetOppositeDirection(gridLeft), minX, maxX, minY, maxY, minZ, maxZ);
                 }
             }
 
@@ -280,12 +280,12 @@ namespace DiamondDomeDefense
                         default: return GetDirectionForward;
                     }
                 }
-                public static Vector3I H(Base6Directions.Direction dir, int minX, int maxX, int minY, int maxY, int minZ, int I)
+                public static Vector3I GetReferencePoint(Base6Directions.Direction dir, int minX, int maxX, int minY, int maxY, int minZ, int I)
                 {
                     switch (dir)
                     {
                         case Base6Directions.Direction.Up:
-                            return newVector3I((minX + maxX) / 2, maxY, (minZ + I) / 2);
+                            return new Vector3I((minX + maxX) / 2, maxY, (minZ + I) / 2);
                         case Base6Directions.Direction.Down: return new Vector3I((minX + maxX) / 2, minY, (minZ + I) / 2);
                         case Base6Directions.Direction.Left:
                             return new Vector3I(minX, (minY + maxY) / 2, (minZ + I) / 2);
@@ -297,7 +297,7 @@ namespace DiamondDomeDefense
                         default: return new Vector3I((minX + maxX) / 2, (minY + maxY) / 2, minZ);
                     }
                 }
-                Vector3D GetAim(ref Vector3D position, ref Vector3In)
+                Vector3D GetAim(ref Vector3D position, ref Vector3I refPoint)
                 { 
                 return position - Grid.GridIntegerToWorld(refPoint); 
                 }
@@ -318,7 +318,7 @@ namespace DiamondDomeDefense
                         return (GetAim(ref position, ref PointRight).Dot(forward + scaleLeft) >= 0 || 
                                 GetAim(ref position, ref PointLeft).Dot(forward - scaleLeft) >= 0 || 
                                 GetAim(ref position, ref PointDown).Dot(forward + scaleUp) >= 0 || 
-                                GetAim(refZ, ref PointUp).Dot(forward - scaleUp) >= 0);
+                                GetAim(ref position, ref PointUp).Dot(forward - scaleUp) >= 0);
                     }
                 }
             }
