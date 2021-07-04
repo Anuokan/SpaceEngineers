@@ -2494,7 +2494,6 @@ namespace DiamondDomeDefense
             sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
             sb.AppendLine($"Guided Missiles : {missileComputers.Count}");
             sb.AppendLine($"Guided Torpedos : {torpedoComputers.Count}");
-            sb.AppendLine($"targets : {targetManager.GetAllTargets()}");
             if (switchedOn)
             {
                 sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
