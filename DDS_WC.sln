@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDS_WC", "DDS_WC\DDS_WC.csproj", "{B198EE45-B813-4BE2-B8EB-EEF4E06E12C6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B198EE45-B813-4BE2-B8EB-EEF4E06E12C6}.Debug|x64.ActiveCfg = Debug|x64
+		{B198EE45-B813-4BE2-B8EB-EEF4E06E12C6}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {73266BA2-D796-42C5-9BDF-F35E46C3017D}
+	EndGlobalSection
+EndGlobal

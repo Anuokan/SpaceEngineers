@@ -1,0 +1,10 @@
+﻿To Display infos on LCD add tag [DDS] to lcd and enter desiert parameters into CustomData
+
+ddsversion
+wcversion
+pdc
+designator
+cameras
+missiles
+torpedos
+targets
