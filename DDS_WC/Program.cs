@@ -33,6 +33,7 @@ namespace DiamondDomeDefense
         const string MANUAL_AIMING_GRP_TAG = "DDS Aiming";
         public const string SILO_DOOR_GRP_TAG = "DDS Door";
         const string DISPLAY_GRP_TAG = "DDS Display";
+        const string DDS_TAG = "[DDS]";
 
         const string PDC_GRP_TAG = "DDS Turret";
         const string AZIMUTH_ROTOR_TAG = "Azimuth";
@@ -120,10 +121,7 @@ namespace DiamondDomeDefense
         Color statusOptionsBoxColor = new Color(0, 0, 90);
 
         char[] splitDelimiterCommand = new char[] { ':' };
-
-        char[] progressIcons = new char[] { '\u2014', '\\', '|', '/', '\u2014', '\\', '|', '/' };
-
-
+        
         IComparer<PDCTarget> sortCommsTargetPriority = new PDCTargetCommsSorting();
 
         Random rnd = new Random();
@@ -207,24 +205,18 @@ namespace DiamondDomeDefense
         Profiler profiler;
         bool debugMode;
 
-        int progressIconIndex = 0;
+
 
         int clock = 0;
         int subMode = 0;
         bool init = false;
         #endregion
 
-
         Program()
         {
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
 
             profiler = new Profiler(Runtime, PROFILER_HISTORY_COUNT, PROFILER_NEW_VALUE_FACTOR);
-
-
-
-
-
 
             settings = new GeneralSettings();
             settings.Context = this;
@@ -233,7 +225,7 @@ namespace DiamondDomeDefense
                 settings.WCAPI = null;
 
             weaponProfiles = new DefaultWeaponProfiles();
-
+         
         }
         public void Main(string args, UpdateType updateType)
         {
@@ -259,8 +251,6 @@ namespace DiamondDomeDefense
             }
 
             profiler.UpdateRuntime();
-
-            GetBlocks();
 
             // Reacquire WCAPI if null, this can happen on pasted ships & NPC ships sometimes.
             if (settings.WCAPI == null)
@@ -304,9 +294,12 @@ namespace DiamondDomeDefense
                 if (clock % STATUS_REFRESH_INTERVAL == 0)
                 {
                     DisplayStatus();
-                    RefreshDisplay();
                 }
                 return;
+            }
+            if (clock % STATUS_REFRESH_INTERVAL == 0)
+            {
+                DisplayStatus();
             }
 
             if (debugMode) profiler.StartSectionWatch("AutoMissileLaunch");
@@ -400,23 +393,28 @@ namespace DiamondDomeDefense
 
             if (debugMode) profiler.StopSectionWatch("TransmitIGCMessages");
 
+            if (!switchedOn)
+            {
+                if (clock % settings.DisplaysRefreshInterval == 0)
+                {
+                    RefreshDisplay();
+                    RefreshDisplays();
+                }
+                return;
+            }
             if (clock % settings.DisplaysRefreshInterval == 0)
             {
                 RefreshDisplay();
-                RefreshDisplays();
-                DisplayStatus();
-                
+                RefreshDisplays();       
             }
 
-            if (clock % STATUS_REFRESH_INTERVAL == 0)
-            {
-                DisplayStatus();
-                RefreshDisplay();
-                
-            }
+            
+
+            
 
             profiler.UpdateComplexity();
         }
+
         #region Initialization
         void ForceJITCompilation()
         {
@@ -590,6 +588,7 @@ namespace DiamondDomeDefense
         }
         void InitConfiguration()
         {
+           
             int latestHashCode = Me.CustomData.GetHashCode();
             if (loadedCustomDataHashCode == 0 || loadedCustomDataHashCode != latestHashCode)
             {
@@ -699,6 +698,8 @@ namespace DiamondDomeDefense
             CompileManualTargeters();
 
             CompileDisplayPanels();
+
+            GetBlocks();
         }
         void CompileDesignators()
         {
@@ -1077,6 +1078,11 @@ namespace DiamondDomeDefense
         {
             GetBlocksFromGroups(out displayPanels, DISPLAY_GRP_TAG);
         }
+
+        private void GetBlocks()
+        {
+                        GridTerminalSystem.GetBlocksOfType(myTextPanels, block => block.IsSameConstructAs(Me) && block.CustomName.Contains(DDS_TAG));
+        }
         #endregion
 
         #region Main Processing
@@ -1151,6 +1157,7 @@ namespace DiamondDomeDefense
 
             if (settings.WCAPI != null)
             {
+                WCThreatsScratchpad.Clear();
                 settings.WCAPI.GetSortedThreats(Me, WCThreatsScratchpad);
                 foreach (var target in WCThreatsScratchpad.Keys)
                 {
@@ -1252,7 +1259,7 @@ namespace DiamondDomeDefense
             if (settings.UsePDCSpray && settings.RandomOffsetProbeInterval > 0 && clock % settings.RandomOffsetProbeInterval == 0)
             {
                 PDCTarget largestTarget = targetManager.FindLargestTarget();
-                if (largestTarget != null && largestTarget.Orientation != null && largestTarget.TargetSizeSq >= settings.PDCSprayMinTargetSize * settings.PDCSprayMinTargetSize)
+                if (largestTarget != null && largestTarget.Orientation !=null && largestTarget.TargetSizeSq >= settings.PDCSprayMinTargetSize * settings.PDCSprayMinTargetSize)
                 {
                     double maxAllowedRaycastDistance = (largestTarget.MaxAllowedRaycastDistance == 0 ? settings.MaxRaycastTrackingDistance : largestTarget.MaxAllowedRaycastDistance);
                     Vector3D largestPosition = largestTarget.CenterPosition + (largestTarget.Velocity * (clock - largestTarget.DetectedClock) * INV_ONE_TICK);
@@ -1876,6 +1883,7 @@ namespace DiamondDomeDefense
 
                 case CMD_TOGGLE_ON_OFF:
                     switchedOn = !switchedOn;
+                    DisplayStatusInName();
                     if (switchedOn == false)
                     {
                         foreach (PDCTurret pdc in pdcList)
@@ -1888,9 +1896,11 @@ namespace DiamondDomeDefense
                     break;
                 case CMD_TOGGLE_ON:
                     switchedOn = true;
+                    DisplayStatusInName();
                     break;
                 case CMD_TOGGLE_OFF:
                     switchedOn = false;
+                    DisplayStatusInName();
                     foreach (PDCTurret pdc in pdcList)
                     {
                         pdc.TargetInfo = null;
@@ -2342,15 +2352,7 @@ namespace DiamondDomeDefense
             }
         }
 
-        private string tag = "[DDS]";
-        private List<IMyTextPanel> myTextPanels = new List<IMyTextPanel>();
-        private void GetBlocks()
-        {
-            GridTerminalSystem.GetBlocksOfType(myTextPanels, block => block.IsSameConstructAs(Me) && block.CustomName.Contains(tag));
-
-        }
-
-        private void RefreshDisplay()
+        void RefreshDisplay()
         {
 
             foreach (var d in myTextPanels)
@@ -2362,7 +2364,61 @@ namespace DiamondDomeDefense
             }
         }
 
-        private void Draw(MySpriteDrawFrame _frame, string customData, RectangleF viewport, bool smalltext = false)
+        void DisplayStatusInName()
+        {
+            if (settings.DisplayStatusInName == true)
+            {
+                if (switchedOn == true)
+                {
+                    Me.CustomName = settings.DDSEnabled;
+                }
+                else if (switchedOn == false)
+                {
+                    Me.CustomName = settings.DDSDisabled;
+                }
+
+            }
+        }
+
+        void DisplayStatus()
+        {
+            sb.Clear();
+            if (switchedOn)
+            {
+                sb.AppendLine($"====[ Diamond Dome System ]===");
+            }
+            else
+            {
+                sb.AppendLine($"====[       DISABLED      ]===");
+            }
+
+            bool wc = settings.WCAPI != null;
+            sb.AppendLine($"WeaponCoreAPI : {wc}\n");
+
+            sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
+
+            sb.AppendLine($"PDCs : {pdcList.Count(b => { return !b.IsDamaged; })}");
+            sb.AppendLine($"Designators : {designators.Count}");
+            sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
+            sb.AppendLine($"Guided Missiles : {missileComputers.Count}");
+            sb.AppendLine($"Guided Torpedos : {torpedoComputers.Count}");
+
+            sb.AppendLine("\n---- Runtime Performance ---\n");
+            profiler.PrintPerformance(sb);
+
+            if (debugMode)
+            {
+                sb.AppendLine("\n>>>>>>> Debug Mode <<<<<<<");
+                sb.AppendLine(debug.ToString());
+                sb.AppendLine("\n---- Debug Performance ---\n");
+                profiler.PrintSectionBreakdown(sb);
+            }
+            Echo(sb.ToString());
+        }
+
+        private List<IMyTextPanel> myTextPanels = new List<IMyTextPanel>();
+    
+        void Draw(MySpriteDrawFrame _frame, string customData, RectangleF viewport, bool smalltext = false)
 
         {
             bool wc = settings.WCAPI != null;
@@ -2481,51 +2537,8 @@ namespace DiamondDomeDefense
                 return sprite;
             }
         }
-        void DisplayStatus()
-        {         
-         
-            sb.Clear();
-            bool wc = settings.WCAPI != null;
-            progressIconIndex = (progressIconIndex + 1) % 8;
-           
-            sb.AppendLine($"====[ Diamond Dome System ]==={progressIcons[progressIconIndex]}");
-            sb.AppendLine($"<<Version {DISPLAY_VERSION}>>\n");          
-            sb.AppendLine($"WeaponCoreAPI : {wc}\n");
-            if (switchedOn)
-            {
-                sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
-                if (settings.DisplayStatusInName == true)
-                {
-                    Me.CustomName = ($"PB DDS active");
-                }
-            }
-            else
-            {
-                sb.AppendLine("\n---< DD Disabled >---");
-                if (settings.DisplayStatusInName == true)
-                {
-                    Me.CustomName = ($"PB DDS disabled");
-                }
-            }
-            sb.AppendLine($"PDCs : {pdcList.Count(b => { return !b.IsDamaged; })}");
-            sb.AppendLine($"Designators : {designators.Count}");
-            sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
-            sb.AppendLine($"Guided Missiles : {missileComputers.Count}");
-            sb.AppendLine($"Guided Torpedos : {torpedoComputers.Count}");
-            
-            sb.AppendLine("\n---- Runtime Performance ---\n");
-            profiler.PrintPerformance(sb);
 
-            if (debugMode)
-            {
-                sb.AppendLine("\n>>>>>>> Debug Mode <<<<<<<");
-                sb.AppendLine("\n---- Debug Performance ---\n");
-                profiler.PrintSectionBreakdown(sb);
-            }
 
-            Echo(sb.ToString());
-            
-        }
 
         #endregion
 

@@ -24,8 +24,13 @@ namespace DiamondDomeDefense
         #region Default Settings
         public class GeneralSettings
         {
+            
+
             public Program Context; // WC 0.1
             public WcPbApi WCAPI;   // WC 0.1
+            
+            public string DDSEnabled  = "PB | DDS enabled";
+            public string DDSDisabled = "PB | DDS disabled";
 
             public bool DisplayStatusInName = false;
 

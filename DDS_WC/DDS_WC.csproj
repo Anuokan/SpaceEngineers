@@ -41,6 +41,7 @@
     <AdditionalFiles Include="MDK\MDK.options.props" />
     <AdditionalFiles Include="MDK\MDK.paths.props" />
     <AdditionalFiles Include="MDK\whitelist.cache" />
+    <Compile Include="GeneralSettings.cs" />
     <Compile Include="MDK\Bootstrapper.cs" />
     <Compile Include="Structs.cs" />
     <Compile Include="AGMChecker.cs" />
@@ -60,7 +61,6 @@
     <Compile Include="CubeExistsPDCOcclusionChecker.cs" />
     <Compile Include="TargetData.cs" />
     <Compile Include="DefaultWeaponProfiles.cs" />
-    <Compile Include="GeneralSettings.cs" />
     <Compile Include="Program.cs" />
     <AdditionalFiles Include="03_Instructions.readme" />
     <AdditionalFiles Include="02_thumb.png" />

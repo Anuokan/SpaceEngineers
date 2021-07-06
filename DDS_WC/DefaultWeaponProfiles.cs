@@ -27,14 +27,14 @@ namespace DiamondDomeDefense
         // WeaponCore - Replace Vanilla Weapons
         // https://steamcommunity.com/sharedfiles/filedetails/?id=1931509062
 
-        const double GATLING_INITIAL_SPEED = 700;
+        const double GATLING_INITIAL_SPEED = 400;
         const double GATLING_ACCELERATION = 0;
-        const double GATLING_MAX_SPEED = 700;
-        const double GATLING_MAX_RANGE = 1000;
+        const double GATLING_MAX_SPEED = 400;
+        const double GATLING_MAX_RANGE = 800;
         const double GATLING_SPAWN_OFFSET = 0;
         const double GATLING_RELOAD_TIME = 0;
         const bool GATLING_IS_CAPPED_SPEED = false;
-        const bool GATLING_USE_SALVO = true;
+        const bool GATLING_USE_SALVO = false;
 
         const double ROCKET_INITIAL_SPEED = 100;
         const double ROCKET_ACCELERATION = 600;

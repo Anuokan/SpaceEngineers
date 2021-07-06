@@ -20,6 +20,7 @@ using VRageMath;
 
 namespace DiamondDomeDefense
 {
+
     public struct OffsetPoint
     {
         public Vector3D Point;

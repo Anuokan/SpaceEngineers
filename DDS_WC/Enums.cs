@@ -19,11 +19,11 @@ using VRageMath;
 
 namespace DiamondDomeDefense
 {
+    
     public enum AGMLaunchOptionEnum
     {
         OffsetTargeting = 1
     }
-
     public enum TrackTypeEnum
     {
         IsFriendly = 1,
