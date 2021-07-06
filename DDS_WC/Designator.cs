@@ -28,6 +28,7 @@ namespace DiamondDomeDefense
             public int NextResetClock = 0;
             public int NextSweeperClock = 0;
             Random rnd = new Random();
+            
             public Designator(IMyLargeTurretBase turret)
             {
                 Turret = turret;

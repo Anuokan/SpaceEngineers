@@ -22,14 +22,14 @@ namespace DiamondDomeDefense
     
         public class WeaponProfile
         {
-            public double InitialSpeed = 400; 
-            public double Acceleration = 0; 
-            public double MaxSpeed = 400; 
-            public double MaxRange = 850; 
-            public double SpawnOffset = 0; 
-            public double ReloadTime = 0; 
-            public bool IsCappedSpeed = false; 
-            public bool UseSalvo = false;
+            public double InitialSpeed;
+            public double Acceleration; 
+            public double MaxSpeed; 
+            public double MaxRange; 
+            public double SpawnOffset; 
+            public double ReloadTime; 
+            public bool IsCappedSpeed; 
+            public bool UseSalvo;
         
             public WeaponProfile(double initialSpeed, double acceleration, double maxSpeed, double maxRange, double spawnOffset, double reloadTime, bool isCappedSpeed, bool useSalvo)
             {

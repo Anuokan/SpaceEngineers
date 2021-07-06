@@ -196,7 +196,8 @@ namespace DiamondDomeDefense
             { 
                 return targetsLookup.Count; 
             }
-            public PDCTarget GetTarget(long entityId)
+
+        public PDCTarget GetTarget(long entityId)
             {
                 Wrapper wrapperr; 
                 if (targetsLookup.TryGetValue(entityId, out wrapperr)) 

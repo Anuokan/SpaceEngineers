@@ -139,6 +139,7 @@ namespace DiamondDomeDefense
         int loadedCustomDataHashCode = 0;
 
         GeneralSettings settings;
+
         DefaultWeaponProfiles weaponProfiles;
 
         IMyRemoteControl remote; // TODO, this should be an IMyController
@@ -188,7 +189,7 @@ namespace DiamondDomeDefense
 
         IMyBroadcastListener igcTargetTracksListener;
         IMyBroadcastListener igcTracksInfoListener;
-        
+
         Queue<MissileCommsTarget> guidanceCommsTargets;
         Queue<PDCTarget> tracksCommsTargets;
         int curCommsQueuePriority = 0;
@@ -213,12 +214,17 @@ namespace DiamondDomeDefense
         bool init = false;
         #endregion
 
-      
-    Program()
-    {
+
+        Program()
+        {
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
 
             profiler = new Profiler(Runtime, PROFILER_HISTORY_COUNT, PROFILER_NEW_VALUE_FACTOR);
+
+
+
+
+
 
             settings = new GeneralSettings();
             settings.Context = this;
@@ -227,9 +233,10 @@ namespace DiamondDomeDefense
                 settings.WCAPI = null;
 
             weaponProfiles = new DefaultWeaponProfiles();
-    }
-    public void Main(string args, UpdateType updateType)
-    {
+
+        }
+        public void Main(string args, UpdateType updateType)
+        {
             if (!init)
             {
                 if (!InitLoop())
@@ -397,12 +404,15 @@ namespace DiamondDomeDefense
             {
                 RefreshDisplay();
                 RefreshDisplays();
+                DisplayStatus();
+                
             }
 
             if (clock % STATUS_REFRESH_INTERVAL == 0)
             {
                 DisplayStatus();
                 RefreshDisplay();
+                
             }
 
             profiler.UpdateComplexity();
@@ -515,7 +525,7 @@ namespace DiamondDomeDefense
                     if (settings.UseAABBOcclusionChecker)
                     {
                         AABBPDCOcclusionChecker aabbChecker = new AABBPDCOcclusionChecker();
-                        iterOcclusionCreator = aabbChecker.Init (new PDCOcclusionGrid(Me.CubeGrid, Me.Position), refBlocks, settings.OcclusionExtraClearance, settings.OcclusionCheckerInitBlockLimit);
+                        iterOcclusionCreator = aabbChecker.Init(new PDCOcclusionGrid(Me.CubeGrid, Me.Position), refBlocks, settings.OcclusionExtraClearance, settings.OcclusionCheckerInitBlockLimit);
 
                         occlusionChecker = aabbChecker;
 
@@ -589,6 +599,7 @@ namespace DiamondDomeDefense
                 {
                     if (iniConfig.ContainsSection(INI_SECTION))
                     {
+
                         settings.MainBlocksReloadTicks = iniConfig.Get(INI_SECTION, "MainBlocksReloadTicks").ToInt32(settings.MainBlocksReloadTicks);
 
                         settings.TargetTracksTransmitIntervalTicks = iniConfig.Get(INI_SECTION, "TargetTracksTransmitIntervalTicks").ToInt32(settings.TargetTracksTransmitIntervalTicks);
@@ -611,7 +622,7 @@ namespace DiamondDomeDefense
 
                         settings.TargetFoundHoldTicks = iniConfig.Get(INI_SECTION, "TargetFoundHoldTicks").ToInt32(settings.TargetFoundHoldTicks);
 
-                        settings.DisplayStatusInName = iniConfig.Get(INI_SECTION, "DisplayStatusInName").ToBoolean(false);
+                        settings.DisplayStatusInName = iniConfig.Get(INI_SECTION, "DisplayStatusInName").ToBoolean(settings.DisplayStatusInName);
 
                         settings.UsePDCSpray = iniConfig.Get(INI_SECTION, "UsePDCSpray").ToBoolean(settings.UsePDCSpray);
                         settings.PDCSprayMinTargetSize = iniConfig.Get(INI_SECTION, "PDCSprayMinTargetSize").ToDouble(settings.PDCSprayMinTargetSize);
@@ -1079,7 +1090,7 @@ namespace DiamondDomeDefense
                     Vector3D aimVector = manualTarget.GetForwardViewDirection();
                     Vector3D targetPosition = manualTarget.AimingBlock.WorldMatrix.Translation + (aimVector * manualTarget.MaxManualRaycastDistance);
                     MyDetectedEntityInfo entityInfo;
-                    raycastHandler.Raycast(ref targetPosition, out entityInfo, settings.RaycastExtensionDistance); 
+                    raycastHandler.Raycast(ref targetPosition, out entityInfo, settings.RaycastExtensionDistance);
                     if (!entityInfo.IsEmpty() && IsValidTarget(ref entityInfo))
                     {
                         manualTarget.SelectedEntityId = entityInfo.EntityId;
@@ -1102,28 +1113,28 @@ namespace DiamondDomeDefense
                                 {
                                     ((IMySoundBlock)manualTarget.AlertBlock).Play();
                                 }
-                                else if (manualTarget.AlertBlock is IMyTimerBlock) 
-                                { 
-                                    ((IMyTimerBlock)manualTarget.AlertBlock).Trigger(); 
+                                else if (manualTarget.AlertBlock is IMyTimerBlock)
+                                {
+                                    ((IMyTimerBlock)manualTarget.AlertBlock).Trigger();
                                 }
                                 else
                                 {
                                     IMyFunctionalBlock funcBlock = manualTarget.AlertBlock as IMyFunctionalBlock;
-                                    if(funcBlock != null && !funcBlock.Enabled) 
+                                    if (funcBlock != null && !funcBlock.Enabled)
                                     {
-                                        funcBlock.Enabled = true; 
+                                        funcBlock.Enabled = true;
                                     }
                                 }
                             }
                             target.MaxAllowedRaycastDistance = manualTarget.MaxAllowedRaycastDistance;
-                            target.MaxAllowedMissileLaunchDistance = manualTarget.MaxAllowedMissileLaunchDistance; 
+                            target.MaxAllowedMissileLaunchDistance = manualTarget.MaxAllowedMissileLaunchDistance;
                             foreach (MissileCommsTarget commsTarget in guidanceCommsTargets)
                             {
                                 if (commsTarget.Target == manualTarget)
-                                { 
+                                {
                                     commsTarget.Target = target;
-                                    commsTarget.TransmitUntilClock = clock + settings.MissileTransmitDurationTicks; 
-                                } 
+                                    commsTarget.TransmitUntilClock = clock + settings.MissileTransmitDurationTicks;
+                                }
                             }
                         }
                     }
@@ -1136,9 +1147,10 @@ namespace DiamondDomeDefense
         }
         void UpdateDesignatorTargets()
         {
+            var gridEntityId = Me.CubeGrid.EntityId;
+
             if (settings.WCAPI != null)
             {
-                WCThreatsScratchpad.Clear();
                 settings.WCAPI.GetSortedThreats(Me, WCThreatsScratchpad);
                 foreach (var target in WCThreatsScratchpad.Keys)
                 {
@@ -1149,6 +1161,7 @@ namespace DiamondDomeDefense
                     }
                 }
             }
+
             else
             {
                 designatorTargetRR.Begin();
@@ -1177,8 +1190,8 @@ namespace DiamondDomeDefense
                             }
                         }
                     }
-                    else 
-                    { 
+                    else
+                    {
                         break;
                     }
                 }
@@ -1193,7 +1206,7 @@ namespace DiamondDomeDefense
                         for (int i = 0; i < maxCount; i++)
                         {
                             Designator designator = designatorOperationRR.GetNext();
-                            if (designator != null) 
+                            if (designator != null)
                             {
                                 if (clock >= designator.NextSweeperClock)
                                 {
@@ -1203,8 +1216,8 @@ namespace DiamondDomeDefense
                                 }
                             }
                             else
-                            { 
-                                break; 
+                            {
+                                break;
                             }
                         }
                     }
@@ -1224,22 +1237,22 @@ namespace DiamondDomeDefense
                         {
                             Vector3D targetPosition = target.Position + (target.Velocity * (clock - target.DetectedClock) * INV_ONE_TICK);
                             MyDetectedEntityInfo entityInfo;
-                            if (raycastHandler.Raycast(ref targetPosition, out entityInfo, settings.RaycastExtensionDistance)) 
+                            if (raycastHandler.Raycast(ref targetPosition, out entityInfo, settings.RaycastExtensionDistance))
                             {
-                                HandleRaycastParameters(ref entityInfo); 
+                                HandleRaycastParameters(ref entityInfo);
                             }
                             nextRaycastGlobalClock = clock + settings.RaycastGlobalRefreshTicks;
                         }
                     }
                     targetManager.UpdateRaycastRefreshClock(target.EntityId, clock);
-                    
+
                     HandlePriorityAssigment(target);
                 }
             }
             if (settings.UsePDCSpray && settings.RandomOffsetProbeInterval > 0 && clock % settings.RandomOffsetProbeInterval == 0)
             {
                 PDCTarget largestTarget = targetManager.FindLargestTarget();
-                if (largestTarget != null && largestTarget.Orientation !=null && largestTarget.TargetSizeSq >= settings.PDCSprayMinTargetSize * settings.PDCSprayMinTargetSize)
+                if (largestTarget != null && largestTarget.Orientation != null && largestTarget.TargetSizeSq >= settings.PDCSprayMinTargetSize * settings.PDCSprayMinTargetSize)
                 {
                     double maxAllowedRaycastDistance = (largestTarget.MaxAllowedRaycastDistance == 0 ? settings.MaxRaycastTrackingDistance : largestTarget.MaxAllowedRaycastDistance);
                     Vector3D largestPosition = largestTarget.CenterPosition + (largestTarget.Velocity * (clock - largestTarget.DetectedClock) * INV_ONE_TICK);
@@ -1263,7 +1276,7 @@ namespace DiamondDomeDefense
         }
         void HandleRaycastParameters(ref MyDetectedEntityInfo entityInfo)
         {
-            if (entityInfo.IsEmpty()) 
+            if (entityInfo.IsEmpty())
             {
                 return;
             }
@@ -1278,13 +1291,13 @@ namespace DiamondDomeDefense
                 target.TargetSizeSq = entityInfo.BoundingBox.Extents.LengthSquared();
                 if (target.CheckTargetSizeSq == 0)
                 {
-                    target.CheckTargetSizeSq = target.TargetSizeSq; 
+                    target.CheckTargetSizeSq = target.TargetSizeSq;
                 }
                 if (settings.UsePDCSpray && target.TargetSizeSq >= settings.PDCSprayMinTargetSize * settings.PDCSprayMinTargetSize && entityInfo.HitPosition.HasValue)
                 {
-                    if (target.OffsetPoints == null) 
+                    if (target.OffsetPoints == null)
                     {
-                        target.OffsetPoints = new List<OffsetPoint>(OFFSET_POINTS_MAX_COUNT); 
+                        target.OffsetPoints = new List<OffsetPoint>(OFFSET_POINTS_MAX_COUNT);
                     }
 
                     Vector3D offsetPoint = Vector3D.TransformNormal(entityInfo.HitPosition.Value - entityInfo.Position, MatrixD.Transpose(entityInfo.Orientation));
@@ -1299,19 +1312,19 @@ namespace DiamondDomeDefense
                             {
                                 selectedIndex = i;
                                 selectedDistanceSq = 0;
-                                break; 
+                                break;
                             }
 
                             double distance = (target.OffsetPoints[i].Point - offsetPoint).LengthSquared();
                             if (distance < selectedDistanceSq)
                             {
                                 selectedIndex = i;
-                                selectedDistanceSq = distance; 
+                                selectedDistanceSq = distance;
                             }
                         }
-                        if (selectedDistanceSq < double.MaxValue) 
-                        { 
-                            target.OffsetPoints[selectedIndex] = new OffsetPoint(ref offsetPoint, clock); 
+                        if (selectedDistanceSq < double.MaxValue)
+                        {
+                            target.OffsetPoints[selectedIndex] = new OffsetPoint(ref offsetPoint, clock);
                         }
                     }
                     else
@@ -1320,10 +1333,10 @@ namespace DiamondDomeDefense
                     }
                 }
             }
-            else 
+            else
             {
                 targetManager.AddToBlackList(entityInfo.EntityId);
-                targetManager.RemoveTarget(entityInfo.EntityId); 
+                targetManager.RemoveTarget(entityInfo.EntityId);
             }
         }
         void HandlePriorityAssigment(PDCTarget target)
@@ -1331,10 +1344,10 @@ namespace DiamondDomeDefense
             Vector3D shipPosition = Me.GetPosition();
             Vector3D shipVelocity = (remote != null ? remote.GetShipVelocities().LinearVelocity : Vector3D.Zero);
 
-            if (target.TargetSizeSq > 0 && target.TargetSizeSq < settings.MinTargetSizeEngage * settings.MinTargetSizeEngage) 
+            if (target.TargetSizeSq > 0 && target.TargetSizeSq < settings.MinTargetSizeEngage * settings.MinTargetSizeEngage)
             {
-                targetManager.AddToBlackList(target.EntityId); 
-                targetManager.RemoveTarget(target.EntityId); 
+                targetManager.AddToBlackList(target.EntityId);
+                targetManager.RemoveTarget(target.EntityId);
             }
             else if (clock - target.DetectedClock <= settings.TargetLostTicks)
             {
@@ -1353,16 +1366,16 @@ namespace DiamondDomeDefense
                         {
                             target.MissileLaunchLastClock = clock;
                             double maxAllowedMissileLaunchDistance = (target.MaxAllowedMissileLaunchDistance == 0 ? settings.MaxMissileLaunchDistance : target.MaxAllowedMissileLaunchDistance);
-                            if ((target.Position - Me.WorldMatrix.Translation).LengthSquared() <= maxAllowedMissileLaunchDistance * maxAllowedMissileLaunchDistance) 
+                            if ((target.Position - Me.WorldMatrix.Translation).LengthSquared() <= maxAllowedMissileLaunchDistance * maxAllowedMissileLaunchDistance)
                             {
-                                if (target.TargetSizeSq == 0) 
-                                { 
-                                    target.MissileRemainingCount = 1; 
-                                } 
-                                else 
-                                { 
-                                    target.MissileRemainingCount = (int)Math.Ceiling(Math.Sqrt(target.TargetSizeSq) / Math.Max(settings.MissileCountPerSize, 1)); 
-                                } 
+                                if (target.TargetSizeSq == 0)
+                                {
+                                    target.MissileRemainingCount = 1;
+                                }
+                                else
+                                {
+                                    target.MissileRemainingCount = (int)Math.Ceiling(Math.Sqrt(target.TargetSizeSq) / Math.Max(settings.MissileCountPerSize, 1));
+                                }
                             }
                         }
                     }
@@ -1373,11 +1386,11 @@ namespace DiamondDomeDefense
         void UpdateAllies()
         {
             AllyTrack ally = allyManager.GetOldestUpdatedAlly();
-            if (ally != null) 
+            if (ally != null)
             {
                 if (clock - ally.LastDetectedClock > settings.AllyTrackLostTicks)
-                { 
-                    allyManager.RemoveAlly(ally.EntityId); 
+                {
+                    allyManager.RemoveAlly(ally.EntityId);
                 }
             }
         }
@@ -1402,14 +1415,14 @@ namespace DiamondDomeDefense
                             maxPriorityValue = 0;
 
                             List<PDCTarget> pdcTargets = targetManager.GetAllTargets();
-                            foreach (PDCTarget target in pdcTargets) 
-                            { 
-                                if (!sortedEntityIds.ContainsKey(target.PriorityValue)) 
+                            foreach (PDCTarget target in pdcTargets)
+                            {
+                                if (!sortedEntityIds.ContainsKey(target.PriorityValue))
                                 {
                                     sortedEntityIds.Add(target.PriorityValue, target);
 
                                     maxPriorityValue = Math.Max(target.PriorityValue, maxPriorityValue);
-                                } 
+                                }
                             }
 
                             pdcAssignRR.Reset();
@@ -1469,9 +1482,9 @@ namespace DiamondDomeDefense
                             {
                                 //                                if (debugMode) debug.AppendLine("TargetAssigned to pcd" );
                                 pdc.TargetInfo = selectedTarget;
-                                
-                                if (sortedEntityIds.ContainsKey(selectedPriority)) 
-                                { 
+
+                                if (sortedEntityIds.ContainsKey(selectedPriority))
+                                {
                                     sortedEntityIds.Remove(selectedPriority);
                                     maxPriorityValue += 1000; selectedPriority = maxPriorityValue;
                                     sortedEntityIds.Add(selectedPriority, selectedTarget);
@@ -1486,7 +1499,7 @@ namespace DiamondDomeDefense
                     }
                     else
                     {
-                        assignmentState = 0; 
+                        assignmentState = 0;
                     }
                     break;
             }
@@ -1501,55 +1514,55 @@ namespace DiamondDomeDefense
             {
                 plane = new PlaneD(shipPosition, Vector3D.Normalize(rangeVector));
             }
-            else 
-            { 
-                plane = new PlaneD(shipPosition, shipPosition + shipVelocity, shipPosition + rangeVector.Cross(shipVelocity)); 
+            else
+            {
+                plane = new PlaneD(shipPosition, shipPosition + shipVelocity, shipPosition + rangeVector.Cross(shipVelocity));
             }
             Vector3D intersectPoint = plane.Intersection(ref target.Position, ref target.Velocity);
             Vector3D targetTravelVector = intersectPoint - target.Position;
 
-            if (targetTravelVector.Dot(ref target.Velocity) < 0) 
-            { 
-                priorityValue += settings.PriorityDowngradeConstant * 4; 
+            if (targetTravelVector.Dot(ref target.Velocity) < 0)
+            {
+                priorityValue += settings.PriorityDowngradeConstant * 4;
             }
             else
             {
-                double t = Math.Sqrt(targetTravelVector.LengthSquared() / Math.Max(target.Velocity.LengthSquared(),0.000000000000001));
-                if ((intersectPoint - (shipPosition + (shipVelocity * t))).LengthSquared() > shipRadius * shipRadius) 
+                double t = Math.Sqrt(targetTravelVector.LengthSquared() / Math.Max(target.Velocity.LengthSquared(), 0.000000000000001));
+                if ((intersectPoint - (shipPosition + (shipVelocity * t))).LengthSquared() > shipRadius * shipRadius)
                 {
-                    priorityValue += settings.PriorityDowngradeConstant * 2; 
+                    priorityValue += settings.PriorityDowngradeConstant * 2;
                 }
-                else if (target.TargetSizeSq <= 0) 
-                { 
+                else if (target.TargetSizeSq <= 0)
+                {
                     priorityValue += settings.PriorityDowngradeConstant;
-                } 
+                }
                 else if (target.TargetSizeSq < settings.MinTargetSizePriority * settings.MinTargetSizePriority)
                 {
-                    priorityValue += settings.PriorityDowngradeConstant * 3; 
+                    priorityValue += settings.PriorityDowngradeConstant * 3;
                 }
             }
             if (target.CheckTargetSizeSq > target.TargetSizeSq)
             {
                 priorityValue += settings.PriorityDowngradeConstant * Math.Max(target.PDCTargetedCount, 1);
             }
-            else 
+            else
             {
-                priorityValue += settings.PriorityDowngradeConstant * Math.Min(target.PDCTargetedCount, 1); 
-            
+                priorityValue += settings.PriorityDowngradeConstant * Math.Min(target.PDCTargetedCount, 1);
+
             }
             return priorityValue;
         }
         void AimFireReloadPDC()
         {
             if (curPDCUpdatesSkipTicks > 0)
-            { 
-                if (clock >= curPDCNextUpdateClock) 
+            {
+                if (clock >= curPDCNextUpdateClock)
                 {
                     curPDCNextUpdateClock = clock + curPDCUpdatesSkipTicks;
                 }
                 else
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
 
@@ -1565,27 +1578,27 @@ namespace DiamondDomeDefense
                     {
                         pdc.LastReloadCheckClock = clock;
                         if (pdc.CheckReloadRequired())
-                        { 
-                            if (clock >= pdc.LastReloadOperationCheck + settings.ReloadedCooldownTicks) 
+                        {
+                            if (clock >= pdc.LastReloadOperationCheck + settings.ReloadedCooldownTicks)
                             {
-                                pdc.LastReloadOperationCheck = clock; pdc.PerformReloadProcedure(clock); 
-                            } 
+                                pdc.LastReloadOperationCheck = clock; pdc.PerformReloadProcedure(clock);
+                            }
                         }
                     }
                     if (pdc.CurrentReloadState == PDCTurret.ReloadState.NONE)
                     {
-                        if (pdc.TargetInfo != null) 
-                        { 
+                        if (pdc.TargetInfo != null)
+                        {
                             pdc.AimAndFire(pdc.TargetInfo, clock);
-                        } 
-                    } 
+                        }
+                    }
                     else
                     {
-                        pdc.PerformReloadProcedure(clock); 
+                        pdc.PerformReloadProcedure(clock);
                     }
                 }
                 else
-                { 
+                {
                     break;
                 }
             }
@@ -1601,12 +1614,12 @@ namespace DiamondDomeDefense
             foreach (IMyBlockGroup group in groups)
             {
                 group.GetBlocksOfType(missileComputers, (b) =>
-                { 
-                    if (b.Enabled && Me.IsSameConstructAs(b)) 
+                {
+                    if (b.Enabled && Me.IsSameConstructAs(b))
                     {
                         return AGMChecker.CheckSave(b);
-                    } 
-                    else 
+                    }
+                    else
                     {
                         return false;
                     }
@@ -1618,17 +1631,17 @@ namespace DiamondDomeDefense
             torpedoComputers = new List<IMyProgrammableBlock>();
             GridTerminalSystem.GetBlockGroups(groups, (b) => { return NameContains(b, TORPEDO_PB_GRP_TAG); });
             foreach (IMyBlockGroup group in groups)
-            { 
-                group.GetBlocksOfType(torpedoComputers, (b) => 
-                { 
+            {
+                group.GetBlocksOfType(torpedoComputers, (b) =>
+                {
                     if (b.Enabled && Me.IsSameConstructAs(b))
                     {
                         return AGMChecker.CheckSave(b);
                     }
-                    else 
-                    { 
-                        return false; 
-                    } 
+                    else
+                    {
+                        return false;
+                    }
                 });
                 break;
             }
@@ -1647,7 +1660,7 @@ namespace DiamondDomeDefense
                         targetData.EntityId = targetTracksData.Item2;
                         targetData.Position = targetTracksData.Item3;
                         targetData.Velocity = targetTracksData.Item4;
-                        targetManager.UpdateTarget(targetData, clock - 1, false); 
+                        targetManager.UpdateTarget(targetData, clock - 1, false);
                         if (targetTracksData.Item5 > 0)
                         {
                             PDCTarget target = targetManager.GetTarget(targetData.EntityId);
@@ -1658,11 +1671,11 @@ namespace DiamondDomeDefense
                         }
                     }
                 }
-            } 
+            }
             while (igcTracksInfoListener.HasPendingMessage)
             {
                 object data = igcTracksInfoListener.AcceptMessage().Data;
-                if (data is MyTuple<long, long, Vector3D, Vector3D,double>)
+                if (data is MyTuple<long, long, Vector3D, Vector3D, double>)
                 {
                     MyTuple<long, Vector3D, Vector3D, double, int, long> tracksInfoData = (MyTuple<long, Vector3D, Vector3D, double, int, long>)data;
                     if (!targetManager.TargetExists(tracksInfoData.Item1) || clock - targetManager.GetTarget(tracksInfoData.Item1).LastDetectedClock >= settings.TargetSlippedTicks)
@@ -1674,17 +1687,17 @@ namespace DiamondDomeDefense
                             targetData.Position = tracksInfoData.Item2;
                             targetData.Velocity = tracksInfoData.Item3;
                             targetManager.UpdateTarget(targetData, clock - 1, false);
-                            if (tracksInfoData.Item4 > 0) 
+                            if (tracksInfoData.Item4 > 0)
                             {
                                 PDCTarget target = targetManager.GetTarget(targetData.EntityId);
-                                if (target != null) 
-                                { 
+                                if (target != null)
+                                {
                                     if (target.TargetSizeSq == 0)
                                     {
                                         target.TargetSizeSq = tracksInfoData.Item4;
-                                    } 
-                                    target.IsLargeGrid = (tracksInfoData.Item5 & (int)TrackTypeEnum.IsLargeGrid) > 0; 
-                                } 
+                                    }
+                                    target.IsLargeGrid = (tracksInfoData.Item5 & (int)TrackTypeEnum.IsLargeGrid) > 0;
+                                }
                             }
                         }
                         else
@@ -1693,7 +1706,7 @@ namespace DiamondDomeDefense
                             ally.Position = tracksInfoData.Item2;
                             ally.Velocity = tracksInfoData.Item3;
                             ally.SizeSq = tracksInfoData.Item4;
-                            ally.IsLargeGrid = (tracksInfoData.Item5 & (int)TrackTypeEnum.IsLargeGrid) > 0; 
+                            ally.IsLargeGrid = (tracksInfoData.Item5 & (int)TrackTypeEnum.IsLargeGrid) > 0;
 
                             allyManager.UpdateAlly(ally, clock);
                         }
@@ -1701,7 +1714,7 @@ namespace DiamondDomeDefense
                 }
             }
         }
-        
+
         void ProcessCommands(string arguments)
         {
             string[] tokens = arguments.Split(splitDelimiterCommand, StringSplitOptions.RemoveEmptyEntries);
@@ -1777,7 +1790,7 @@ namespace DiamondDomeDefense
                             manualTarget.Position = manualTarget.AimingBlock.WorldMatrix.Translation + (manualTarget.GetForwardViewDirection() * manualTarget.MaxManualRaycastDistance);
                             manualTarget.MaxAllowedRaycastDistance = Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxRaycastTrackingDistance);
                             manualTarget.MaxAllowedMissileLaunchDistance = (LaunchAutomaticMissiles ? Math.Max(manualTarget.MaxManualRaycastDistance, settings.MaxMissileLaunchDistance) : 0);
-                            
+
                             LaunchManualForTarget(guidanceComputers, manualTarget, manualTarget.TargetingPointType, manualTarget.OffsetPoint, useTorpedo);
                         }
                     }
@@ -1863,15 +1876,7 @@ namespace DiamondDomeDefense
 
                 case CMD_TOGGLE_ON_OFF:
                     switchedOn = !switchedOn;
-                    if (settings.DisplayStatusInName)
-                    {
-                        var s = Me.CustomName.Split('|');
-                        if (s.Length == 2)
-                        {
-                            Me.CustomName = s[0] + "|" + (switchedOn?$" DDS ON {pdcList.Count(b=>{return!b.IsDamaged;})}":" DDS OFF");
-                        }
-                    };
-                    if (!switchedOn)
+                    if (switchedOn == false)
                     {
                         foreach (PDCTurret pdc in pdcList)
                         {
@@ -1917,7 +1922,7 @@ namespace DiamondDomeDefense
             {
                 if (targetManager.Count() > 0)
                 {
-                    PDCTarget target = targetManager.GetOldestRaycastUpdatedTarget(); 
+                    PDCTarget target = targetManager.GetOldestRaycastUpdatedTarget();
                     if (target != null)
                     {
                         if (target.MissileRemainingCount > 0 && targetManager.TargetExists(target.EntityId))
@@ -1942,7 +1947,7 @@ namespace DiamondDomeDefense
                 if (block.IsWorking && GridTerminalSystem.GetBlockWithId(block.EntityId) != null)
                 {
                     double distanceSq = (block.WorldMatrix.Translation - target.Position).LengthSquared();
-                    if (distanceSq < closest) 
+                    if (distanceSq < closest)
                     {
                         closest = distanceSq;
                         missileComputer = block;
@@ -1960,25 +1965,25 @@ namespace DiamondDomeDefense
                 guidanceCommsTargets.Enqueue(commsTarget);
 
                 MissileCommsTarget switchLostTarget = new MissileCommsTarget();
-                switchLostTarget.Target = target; 
+                switchLostTarget.Target = target;
                 switchLostTarget.TransmitUntilClock = int.MaxValue;
                 switchLostTarget.TransmitAsSwitchLost = true;
-                guidanceCommsTargets.Enqueue(switchLostTarget); 
+                guidanceCommsTargets.Enqueue(switchLostTarget);
 
                 MyTuple<long, long, long, int, float> launchData = new MyTuple<long, long, long, int, float>();
 
-                launchData.Item1 = Me.EntityId; 
+                launchData.Item1 = Me.EntityId;
                 launchData.Item2 = commsTarget.TransmitUniqueId;
                 launchData.Item3 = Me.EntityId;
                 launchData.Item4 |= (int)AGMLaunchOptionEnum.OffsetTargeting;
                 launchData.Item5 = (useOffsetTargeting ? (float)(Math.Sqrt(target.TargetSizeSq) * 0.5 * settings.MissileOffsetRadiusFactor) : 0f);
-                
+
                 bool sentIGCLaunchSuccess = IGC.SendUnicastMessage(missileComputer.EntityId, "", launchData);
 
                 if (!sentIGCLaunchSuccess)
                 {
                     MyIni config = new MyIni();
-                    if (missileComputer.CustomData.Length > 0) config.TryParse(missileComputer.CustomData); 
+                    if (missileComputer.CustomData.Length > 0) config.TryParse(missileComputer.CustomData);
                     config.Set(MISSILE_INI_SECTION, "UniqueId", launchData.Item2);
                     config.Set(MISSILE_INI_SECTION, "GroupId", launchData.Item3);
                     if (useOffsetTargeting)
@@ -2005,14 +2010,14 @@ namespace DiamondDomeDefense
                     commsTarget.Target = target;
                     commsTarget.TransmitUntilClock = clock + settings.ManualAimBroadcastDurationTicks;
                     if (checkUseCGE && NameContains(computer, USE_CGE_TAG)) commsTarget.CacheMissilePB = computer; guidanceCommsTargets.Enqueue(commsTarget);
-                    
+
                     MyIni config = null;
                     //[Notes] TargetDatalinkData(LaunchControlId, SetUniqueId, SetGroupId, SetBitMaskOptions(1=OffsetTargeting), SetRandomOffsetAmount) => MyTuple<long, long, long, int, float>
                     MyTuple<long, long, long, int, float> launchData = new MyTuple<long, long, long, int, float>();
-                    
+
                     launchData.Item1 = Me.EntityId;
                     launchData.Item2 = commsTarget.TransmitUniqueId;
-                    launchData.Item3 = Me.EntityId; 
+                    launchData.Item3 = Me.EntityId;
 
                     switch (targetingPointType)
                     {
@@ -2027,7 +2032,7 @@ namespace DiamondDomeDefense
                             break;
                         case TargetingPointTypeEnum.Random:
                             launchData.Item4 |= (int)AGMLaunchOptionEnum.OffsetTargeting;
-                            launchData.Item5 = (float)(Math.Sqrt(target.TargetSizeSq) * 0.5 * settings.MissileOffsetRadiusFactor); 
+                            launchData.Item5 = (float)(Math.Sqrt(target.TargetSizeSq) * 0.5 * settings.MissileOffsetRadiusFactor);
 
                             break;
                         default:
@@ -2049,7 +2054,7 @@ namespace DiamondDomeDefense
                         {
                             case TargetingPointTypeEnum.Offset:
                                 config.Set(MISSILE_INI_SECTION, "OffsetTargeting", launchData.Item4);
-                                config.Set(MISSILE_INI_SECTION, "ProbeOffsetVector", Vector3ToBase64(offsetPoint != null ? offsetPoint.Value : Vector3D.Zero)); 
+                                config.Set(MISSILE_INI_SECTION, "ProbeOffsetVector", Vector3ToBase64(offsetPoint != null ? offsetPoint.Value : Vector3D.Zero));
                                 break;
                             case TargetingPointTypeEnum.Random:
                                 config.Set(MISSILE_INI_SECTION, "OffsetTargeting", launchData.Item4);
@@ -2060,9 +2065,9 @@ namespace DiamondDomeDefense
                         computer.CustomData = config.ToString();
                         computer.TryRun("FIRE:" + Me.EntityId);
                     }
-                    if (guidanceComputers.Count == 1) 
+                    if (guidanceComputers.Count == 1)
                     {
-                        guidanceComputers.Clear(); 
+                        guidanceComputers.Clear();
                     }
                     else
                     {
@@ -2078,26 +2083,26 @@ namespace DiamondDomeDefense
 
         #region IGC Transmission
 
-        void TransmitIGCMessages() 
+        void TransmitIGCMessages()
         {
-            haveIGCTransmitted = false; 
-            if (curCommsQueuePriority == 0) 
+            haveIGCTransmitted = false;
+            if (curCommsQueuePriority == 0)
             {
-                TransmitMissileInformation(); 
+                TransmitMissileInformation();
                 if (!haveIGCTransmitted)
                 {
-                    TransmitTargetTracksInformation(); 
-                } 
+                    TransmitTargetTracksInformation();
+                }
                 curCommsQueuePriority = 1;
-            } 
+            }
             else
             { TransmitTargetTracksInformation();
                 if (!haveIGCTransmitted)
-                { 
+                {
                     TransmitMissileInformation();
-                } 
-                curCommsQueuePriority = 0; 
-            } 
+                }
+                curCommsQueuePriority = 0;
+            }
         }
         void TransmitMissileInformation()
         {
@@ -2114,7 +2119,7 @@ namespace DiamondDomeDefense
                     {
                         if (current.CacheMissilePB == null)
                         {
-                            MyTuple<bool, long, long, long,Vector3D, Vector3D> targetDatalinkData = new MyTuple<bool, long, long, long, Vector3D, Vector3D>();
+                            MyTuple<bool, long, long, long, Vector3D, Vector3D> targetDatalinkData = new MyTuple<bool, long, long, long, Vector3D, Vector3D>();
                             targetDatalinkData.Item1 = current.TransmitAsSwitchLost;
                             targetDatalinkData.Item2 = (current.TransmitAsSwitchLost ? Me.EntityId : current.TransmitUniqueId);
                             targetDatalinkData.Item3 = 0;
@@ -2139,7 +2144,7 @@ namespace DiamondDomeDefense
                         current.NextTransmitClock = clock + settings.MissileTransmitIntervalTicks;
                         haveIGCTransmitted = true;
                     }
-                    if (!current.TransmitAsSwitchLost) 
+                    if (!current.TransmitAsSwitchLost)
                     {
                         guidanceCommsTargets.Enqueue(current);
                     }
@@ -2156,19 +2161,19 @@ namespace DiamondDomeDefense
                     List<PDCTarget> pdcTargets = targetManager.GetAllTargets();
                     pdcTargets.Sort(sortCommsTargetPriority);
                     foreach (PDCTarget target in pdcTargets)
-                    { 
+                    {
                         tracksCommsTargets.Enqueue(target);
                     }
                 }
                 nextTracksTranmissionClock = clock + settings.TargetTracksTransmitIntervalTicks;
-            } 
+            }
             while (tracksCommsTargets.Count > 0)
             {
                 PDCTarget target = tracksCommsTargets.Dequeue();
 
                 if (targetManager.TargetUpToLocalDate(target.EntityId, clock - settings.TargetLostTicks))
                 {
-                    MyTuple<long, Vector3D,Vector3D, double, int, long> tracksInfoData = new MyTuple<long, Vector3D, Vector3D, double, int, long>();
+                    MyTuple<long, Vector3D, Vector3D, double, int, long> tracksInfoData = new MyTuple<long, Vector3D, Vector3D, double, int, long>();
                     tracksInfoData.Item1 = target.EntityId;
                     tracksInfoData.Item2 = target.Position + (target.Velocity * (clock - target.DetectedClock + 1) * INV_ONE_TICK);
                     tracksInfoData.Item3 = target.Velocity;
@@ -2177,7 +2182,7 @@ namespace DiamondDomeDefense
                     if (target.IsLargeGrid) tracksInfoData.Item5 |= (int)TrackTypeEnum.IsLargeGrid;
 
                     tracksInfoData.Item6 = 0;
-                    
+
                     IGC.SendBroadcastMessage(IGC_MSG_TRACKS_INFO, tracksInfoData);
                     haveIGCTransmitted = true;
 
@@ -2241,41 +2246,41 @@ namespace DiamondDomeDefense
                     float textSize = standardTextSizeFactor * fullBarSize.Y;
 
                     Vector2 currentOffset = screenOffset + verticalGap;
-                    
+
                     string text;
                     Color textColor;
                     Color boxColor;
 
                     sprites.Add(new MySprite(SpriteType.TEXTURE, "SquareSimple", currentOffset + fullBarMidPosition, fullBarSize, statusThisScriptBoxColor));
                     sprites.Add(new MySprite(SpriteType.TEXT, $"{DISPLAY_SCRIPT_NAME} v{DISPLAY_VERSION}", currentOffset + fullBarMidWidth, null, statusThisScriptTextColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
-                    currentOffset += verticalSpacing; 
-                    
+
+                    currentOffset += verticalSpacing;
+
                     sprites.Add(new MySprite(SpriteType.TEXTURE, "SquareSimple", currentOffset + fullBarMidPosition, fullBarSize, statusAimIdBoxColor));
                     sprites.Add(new MySprite(SpriteType.TEXT, $"Manual Targeter {manualTarget.CodeId}", currentOffset + fullBarMidWidth, null, statusAimIdTextColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
+
                     currentOffset += verticalSpacing + verticalGap;
 
                     sprites.Add(new MySprite(SpriteType.TEXT, "Status", currentOffset + fullBarMidWidth, null, statusTitleTextColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
+
                     currentOffset += verticalSpacing;
 
-                    if(manualTarget.SelectedEntityId > 0)
-                    { 
+                    if (manualTarget.SelectedEntityId > 0)
+                    {
                         text = "Target Locked";
-                        textColor = statusLockedTextColor; 
-                        boxColor = statusLockedBoxColor; 
+                        textColor = statusLockedTextColor;
+                        boxColor = statusLockedBoxColor;
                     }
                     else if
-                        (manualTarget.Enabled) 
+                        (manualTarget.Enabled)
                     { text = "Seeking";
-                        textColor = statusSeekingTextColor; 
-                        boxColor = statusSeekingBoxColor; 
+                        textColor = statusSeekingTextColor;
+                        boxColor = statusSeekingBoxColor;
                     }
                     else
-                    { 
+                    {
                         text = "No Target";
-                        textColor = statusNoTargetTextColor; 
+                        textColor = statusNoTargetTextColor;
                         boxColor = statusNoTargetBoxColor;
                     }
 
@@ -2296,7 +2301,7 @@ namespace DiamondDomeDefense
                         boxColor = statusCurrentTargetBoxColor;
                     }
                     else
-                    { 
+                    {
                         text = "-";
                         textColor = statusNoTargetTextColor;
                         boxColor = statusNoTargetBoxColor;
@@ -2308,9 +2313,9 @@ namespace DiamondDomeDefense
                     currentOffset += verticalSpacing + verticalGap;
 
                     sprites.Add(new MySprite(SpriteType.TEXT, "Range", currentOffset + halfBarMidWidth, null, statusTitleTextColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
+
                     sprites.Add(new MySprite(SpriteType.TEXT, "Hit Point", currentOffset + horizontalSpacing + halfBarMidWidth, null, statusTitleTextColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
+
                     currentOffset += verticalSpacing;
 
                     text = $"{Math.Round(manualTarget.MaxManualRaycastDistance * 0.001, 1):n1}km";
@@ -2327,7 +2332,7 @@ namespace DiamondDomeDefense
 
                     sprites.Add(new MySprite(SpriteType.TEXTURE, "SquareSimple", currentOffset + horizontalSpacing + halfBarMidPosition, halfBarSize, boxColor));
                     sprites.Add(new MySprite(SpriteType.TEXT, text, currentOffset + horizontalSpacing + halfBarMidWidth, null, textColor, "DEBUG", TextAlignment.CENTER, textSize));
-                    
+
                     surface.ContentType = ContentType.SCRIPT;
                     surface.Script = "";
                     MySpriteDrawFrame frame = surface.DrawFrame();
@@ -2477,44 +2482,49 @@ namespace DiamondDomeDefense
             }
         }
         void DisplayStatus()
-        {
+        {         
+         
             sb.Clear();
-
             bool wc = settings.WCAPI != null;
-          
             progressIconIndex = (progressIconIndex + 1) % 8;
-
+           
             sb.AppendLine($"====[ Diamond Dome System ]==={progressIcons[progressIconIndex]}");
-            sb.AppendLine($"<<Version {DISPLAY_VERSION}>>\n");
-
+            sb.AppendLine($"<<Version {DISPLAY_VERSION}>>\n");          
             sb.AppendLine($"WeaponCoreAPI : {wc}\n");
-
+            if (switchedOn)
+            {
+                sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
+                if (settings.DisplayStatusInName == true)
+                {
+                    Me.CustomName = ($"PB DDS active");
+                }
+            }
+            else
+            {
+                sb.AppendLine("\n---< DD Disabled >---");
+                if (settings.DisplayStatusInName == true)
+                {
+                    Me.CustomName = ($"PB DDS disabled");
+                }
+            }
             sb.AppendLine($"PDCs : {pdcList.Count(b => { return !b.IsDamaged; })}");
             sb.AppendLine($"Designators : {designators.Count}");
             sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
             sb.AppendLine($"Guided Missiles : {missileComputers.Count}");
             sb.AppendLine($"Guided Torpedos : {torpedoComputers.Count}");
-            if (switchedOn)
-            {
-                sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
-            }
-            else
-            {
-                sb.AppendLine("\n---< DD Disabled >---");
-            }
-
+            
             sb.AppendLine("\n---- Runtime Performance ---\n");
             profiler.PrintPerformance(sb);
 
             if (debugMode)
             {
                 sb.AppendLine("\n>>>>>>> Debug Mode <<<<<<<");
-                sb.AppendLine(debug.ToString());
-
                 sb.AppendLine("\n---- Debug Performance ---\n");
                 profiler.PrintSectionBreakdown(sb);
             }
+
             Echo(sb.ToString());
+            
         }
 
         #endregion
