@@ -41,6 +41,7 @@
     <AdditionalFiles Include="MDK\MDK.options.props" />
     <AdditionalFiles Include="MDK\MDK.paths.props" />
     <AdditionalFiles Include="MDK\whitelist.cache" />
+    <Compile Include="ScriptData.cs" />
     <Compile Include="GeneralSettings.cs" />
     <Compile Include="MDK\Bootstrapper.cs" />
     <Compile Include="Structs.cs" />

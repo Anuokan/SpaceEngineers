@@ -74,6 +74,14 @@ namespace DiamondDomeDefense
         const string CMD_AUTOLAUNCH_OFF = "AUTOLAUNCH_OFF";  // new in 5.6
         const string CMD_DEBUG_MODE = "DEBUGMODE";
 
+        const string CMD_GET_TARGET_GPS = "GPS_FROM_TARGET";
+        private IMyTerminalBlock weaponBlock;
+        public List<IMyTerminalBlock> Weapons = new List<IMyTerminalBlock>();
+        public List<MyDefinitionId> WeaponDefinitions = new List<MyDefinitionId>();
+        public const string startString = "[GPS start]\n";    
+        public const string endString   = "\n[GPS end]";        
+
+
         public const double COS_45_DEGREES = 0.707;
 
         const int OFFSET_POINTS_MAX_COUNT = 7;
@@ -293,13 +301,19 @@ namespace DiamondDomeDefense
             {
                 if (clock % STATUS_REFRESH_INTERVAL == 0)
                 {
-                    DisplayStatus();
+                    //DisplayStatus();
+                    long id = -1;
+                    id = Me.CubeGrid.EntityId;
+                    DisplayStatus((MyDetectedEntityInfo)settings.WCAPI.GetAiFocus(id));
                 }
                 return;
             }
             if (clock % STATUS_REFRESH_INTERVAL == 0)
             {
-                DisplayStatus();
+                long id = -1;
+                id = Me.CubeGrid.EntityId;
+                DisplayStatus((MyDetectedEntityInfo)settings.WCAPI.GetAiFocus(id));
+                //DisplayStatus();
             }
 
             if (debugMode) profiler.StartSectionWatch("AutoMissileLaunch");
@@ -416,6 +430,7 @@ namespace DiamondDomeDefense
         }
 
         #region Initialization
+
         void ForceJITCompilation()
         {
             try
@@ -477,6 +492,7 @@ namespace DiamondDomeDefense
             }
             catch (Exception) { }
         }
+
         bool InitLoop()
         {
             if (subMode == 0)
@@ -586,6 +602,7 @@ namespace DiamondDomeDefense
             }
             return true;
         }
+
         void InitConfiguration()
         {
            
@@ -687,6 +704,7 @@ namespace DiamondDomeDefense
                 }
             }
         }
+
         void ReloadMainBlocks()
         {
             CompileDesignators();
@@ -701,6 +719,7 @@ namespace DiamondDomeDefense
 
             GetBlocks();
         }
+
         void CompileDesignators()
         {
             List<IMyLargeTurretBase> turrets;
@@ -1074,15 +1093,17 @@ namespace DiamondDomeDefense
             manualTargeters = newManualTargeters;
             manualTargetersLookup = newManualTargetersLookup;
         }
+
         void CompileDisplayPanels()
         {
             GetBlocksFromGroups(out displayPanels, DISPLAY_GRP_TAG);
         }
 
-        private void GetBlocks()
+        void GetBlocks()
         {
                         GridTerminalSystem.GetBlocksOfType(myTextPanels, block => block.IsSameConstructAs(Me) && block.CustomName.Contains(DDS_TAG));
         }
+
         #endregion
 
         #region Main Processing
@@ -1917,6 +1938,11 @@ namespace DiamondDomeDefense
                 case CMD_AUTOLAUNCH_OFF:
                     settings.AutoMissileLaunch = false;
                     break;
+                case CMD_GET_TARGET_GPS:
+                    long id = -1;
+                    id = Me.CubeGrid.EntityId;
+                    TargetGPStoCustomData((MyDetectedEntityInfo)settings.WCAPI.GetAiFocus(id));
+                    break;
                 case CMD_DEBUG_MODE:
                     debugMode = !debugMode;
                     break;
@@ -2379,9 +2405,45 @@ namespace DiamondDomeDefense
 
             }
         }
-
-        void DisplayStatus()
+        void TargetGPStoCustomData(MyDetectedEntityInfo info)
         {
+
+
+
+                sb.Clear();
+                ///even if the program has no entries for itself in the CustomData, it can still create an entry
+                //ScriptData1.SetScriptData("this is the newest entry");
+                var ScriptData1 = new ScriptData(Me, startString, endString);
+
+                ///this will find your data
+                var myData = ScriptData1.GetScriptData();
+
+                ///this will remove your data entry and replace it with newData
+                ///the old data is removed to prevent the CustomData from being overfilled
+                ScriptData1.SetScriptData("this is new data");
+                var newData = ScriptData1.GetScriptData();
+
+
+                ///this will completely remove ONLY your data entries in the CustomData
+                ScriptData1.RemoveScriptData();
+
+
+                ///even if the program has no entries for itself in the CustomData, it can still create an entry
+                ///sb.Clear();
+                WCThreatsScratchpad.Clear();
+                settings.WCAPI.GetSortedThreats(Me, WCThreatsScratchpad);
+                foreach (var target in WCThreatsScratchpad.Keys)
+                {
+                    sb.AppendLine($"GPS:{target.Name}:{target.Position.X}:{target.Position.Y}:{target.Position.Z}:#FF0000:");
+                }
+                ScriptData1.SetScriptData(sb.ToString());
+            
+            }
+
+
+            void DisplayStatus(MyDetectedEntityInfo info)
+        {
+            
             sb.Clear();
             if (switchedOn)
             {
@@ -2391,12 +2453,31 @@ namespace DiamondDomeDefense
             {
                 sb.AppendLine($"====[       DISABLED      ]===");
             }
-
+            
             bool wc = settings.WCAPI != null;
             sb.AppendLine($"WeaponCoreAPI : {wc}\n");
 
-            sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
+            WeaponDefinitions.Clear();
+            Weapons.Clear();
+            settings.WCAPI.GetAllCoreWeapons(WeaponDefinitions);
+            sb.AppendLine("Total Weapons registered: " + WeaponDefinitions.Count + "\n");
+            WeaponDefinitions.Clear();
 
+            IDictionary<string, int> temp = new Dictionary<string, int>();
+            if (Weapons.Count > 0)
+            {
+                weaponBlock = Weapons[0];
+                sb.AppendLine("Weapon Info:\n");
+                sb.AppendLine("-----------------------\n");
+                sb.AppendLine("Has Core Weapon: " + settings.WCAPI.HasCoreWeapon(weaponBlock) + "\n");
+                temp.Clear();
+                weaponBlock = null;
+            }
+            sb.AppendLine("Name: " + info.Name + "\n");
+            
+            
+
+            sb.AppendLine($"Tracked Targets : {targetManager.Count()}");
             sb.AppendLine($"PDCs : {pdcList.Count(b => { return !b.IsDamaged; })}");
             sb.AppendLine($"Designators : {designators.Count}");
             sb.AppendLine($"Raycast Cameras : {raycastCameras.Count}");
