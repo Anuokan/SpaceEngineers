@@ -4,9 +4,12 @@
 
 ************************************************************************************************
 Setup Informations:
-+ To Display Status off DDS In Name off PB add | After Programable block name
 
-+ To Display infos on LCD add tag [DDS] to lcd and enter desiert parameters into CustomData
++ Run PB with GPS_FROM_TARGET argument to get the GPS of the Target in CustomData
+
++ To Display Status off DDS In Name off PB set DisplayStatusInName = true in The Section [DDS] in PB CustomData
+
++ To Display infos on LCD add tag [DDS] to lcd and enter desiert parameters into CustomData(still WIP)
 
 ddsversion
 wcversion

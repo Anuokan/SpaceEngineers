@@ -79,7 +79,7 @@ namespace DiamondDomeDefense
         public List<IMyTerminalBlock> Weapons = new List<IMyTerminalBlock>();
         public List<MyDefinitionId> WeaponDefinitions = new List<MyDefinitionId>();
         public const string startString = "[GPS start]\n";    
-        public const string endString   = "\n[GPS end]";        
+        public const string endString   = "[GPS end]";        
 
 
         public const double COS_45_DEGREES = 0.707;
@@ -2407,42 +2407,22 @@ namespace DiamondDomeDefense
         }
         void TargetGPStoCustomData(MyDetectedEntityInfo info)
         {
-
-
-
-                sb.Clear();
-                ///even if the program has no entries for itself in the CustomData, it can still create an entry
-                //ScriptData1.SetScriptData("this is the newest entry");
+                sb.Clear();              
                 var ScriptData1 = new ScriptData(Me, startString, endString);
-
-                ///this will find your data
                 var myData = ScriptData1.GetScriptData();
-
-                ///this will remove your data entry and replace it with newData
-                ///the old data is removed to prevent the CustomData from being overfilled
                 ScriptData1.SetScriptData("this is new data");
                 var newData = ScriptData1.GetScriptData();
-
-
-                ///this will completely remove ONLY your data entries in the CustomData
                 ScriptData1.RemoveScriptData();
-
-
-                ///even if the program has no entries for itself in the CustomData, it can still create an entry
-                ///sb.Clear();
                 WCThreatsScratchpad.Clear();
                 settings.WCAPI.GetSortedThreats(Me, WCThreatsScratchpad);
                 foreach (var target in WCThreatsScratchpad.Keys)
                 {
-                    sb.AppendLine($"GPS:{target.Name}:{target.Position.X}:{target.Position.Y}:{target.Position.Z}:#FF0000:");
+                    sb.AppendLine($"GPS:{target.Name}:{target.Position.X}:{target.Position.Y}:{target.Position.Z}:#FF0000:\n");
                 }
-                ScriptData1.SetScriptData(sb.ToString());
-            
+                ScriptData1.SetScriptData(sb.ToString());           
             }
-
-
-            void DisplayStatus(MyDetectedEntityInfo info)
-        {
+        void DisplayStatus(MyDetectedEntityInfo info)
+            {
             
             sb.Clear();
             if (switchedOn)
